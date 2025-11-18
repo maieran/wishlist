@@ -12,19 +12,20 @@ let wishlist: WishlistItem[] = [];
 let nextId = 1;
 
 //GET /api/wishlist
-export const getWishlist = () => wishlist;
+export const getWishlist = () => [...wishlist]; //returns a new array
 
 //POST /api/wishlist/wishlistitem (id wird intern kreiert später, derzeit nur inkrementiert für UI-Testzwecke)
 export const addWishlistItem = (item: Omit<WishlistItem, 'id'>) => {
   const newItem = { ...item, id: String(nextId++) };
-  wishlist.push(newItem);
+  //wishlist.push(newItem);
+  wishlist = [...wishlist, newItem];
 };
 
 
 
 //PUT /api/wishlist/wishlistitem{id="123"}
 export const updateWishlistItem = (id:string, updated: WishlistItem) => {
-    wishlist = wishlist.map(item => item.id === id ? updated: item);
+    wishlist = wishlist.map(item => (item.id === id ? updated: item));
 }
 
 //DELETE /api/wishlist/wishlistitem{id="123"}

@@ -10,38 +10,38 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Wishlist'>;
 export default function WishlistScreen({ navigation }: Props) {
   const [items, setItems] = useState<WishlistItem[]>([]);
 
-  useFocusEffect(
-    useCallback(() => {
-      setItems(getWishlist());
-    }, [])
-  );
+  const refresh = useCallback(() => {
+    setItems(getWishlist());
+  }, []);
 
-  return (
+  useFocusEffect(refresh);
+
+return (
     <View style={{ flex: 1, padding: 20 }}>
-      <Button title="Add Item" onPress={() => navigation.navigate('AddItem')} />
+      <Button title="Add Item" onPress={() => navigation.navigate("AddItem")} />
 
       <FlatList
         data={items}
         keyExtractor={(x) => x.id}
         renderItem={({ item }) => (
           <TouchableOpacity
-            onPress={() => navigation.navigate('EditItem', { id: item.id })}
+            onPress={() => navigation.navigate("EditItem", { id: item.id })}
             style={{
               padding: 15,
               marginVertical: 10,
-              backgroundColor: '#f2f2f2',
+              backgroundColor: "#f2f2f2",
               borderRadius: 10,
             }}
           >
             <Text style={{ fontSize: 20 }}>{item.title}</Text>
             <Text>{item.description}</Text>
-            <Text style={{ fontWeight: 'bold' }}>{item.price} EUR</Text>
+            <Text style={{ fontWeight: "bold" }}>{item.price} EUR</Text>
 
             <Button
               title="Delete"
               onPress={() => {
                 deleteWishlistItem(item.id);
-                setItems(getWishlist());
+                refresh(); // refresh right after deleting
               }}
             />
           </TouchableOpacity>
