@@ -1,34 +1,68 @@
 
 /* In-Memory List that is going to be replaced with the backend API (spring boot) */
 /* UI testing */
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 export type WishlistItem = {
-    id: string;
-    title: string;
-    description: string;
-    price: number;
+  id: string;
+  title: string;
+  description: string;
+  price: number;
+  imageUri?: string;
+  priority?: 'red' | 'blue' | 'green' | 'none'; // NEW
+  groupItems?: string[];
 };
 
 let wishlist: WishlistItem[] = [];
 let nextId = 1;
 
-//GET /api/wishlist
-export const getWishlist = () => [...wishlist]; //returns a new array
+const STORAGE_KEY = "wishlist-data";
 
-//POST /api/wishlist/wishlistitem (id wird intern kreiert später, derzeit nur inkrementiert für UI-Testzwecke)
-export const addWishlistItem = (item: Omit<WishlistItem, 'id'>) => {
-  const newItem = { ...item, id: String(nextId++) };
-  //wishlist.push(newItem);
-  wishlist = [...wishlist, newItem];
+export const loadWishlist = async () => {
+  try {
+    const json = await AsyncStorage.getItem(STORAGE_KEY);
+    if (json) {
+      wishlist = JSON.parse(json);
+      // update nextId so new items don't collide
+      nextId = wishlist.length ? Math.max(...wishlist.map(i => Number(i.id))) + 1 : 1;
+    }
+  } catch (err) {
+    console.log("Error loading wishlist", err);
+  }
 };
 
+const persistWishlist = async () => {
+  try {
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(wishlist));
+  } catch (err) {
+    console.log("Error saving wishlist", err);
+  }
+};
 
+// GET
+export const getWishlist = () => [...wishlist];
 
-//PUT /api/wishlist/wishlistitem{id="123"}
-export const updateWishlistItem = (id:string, updated: WishlistItem) => {
-    wishlist = wishlist.map(item => (item.id === id ? updated: item));
-}
+// ADD
+export const addWishlistItem = (item: Omit<WishlistItem, 'id'>) => {
+  const newItem: WishlistItem = {
+    ...item,
+    id: String(nextId++),
+    priority: item.priority ?? 'none',
+    groupItems: item.groupItems ?? [],
+  };
+  
+  wishlist = [...wishlist, newItem];
+  persistWishlist();
+};
 
-//DELETE /api/wishlist/wishlistitem{id="123"}
+// UPDATE
+export const updateWishlistItem = (id: string, updated: WishlistItem) => {
+  wishlist = wishlist.map((item) => (item.id === id ? updated : item));
+  persistWishlist();
+};
+
+// DELETE
 export const deleteWishlistItem = (id: string) => {
-    wishlist = wishlist.filter(item => item.id !== id);
-}
+  wishlist = wishlist.filter((item) => item.id !== id);
+  persistWishlist();
+};
