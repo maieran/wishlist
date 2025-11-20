@@ -1,7 +1,4 @@
-
-/* In-Memory List that is going to be replaced with the backend API (spring boot) */
-/* UI testing */
-/* Persistent Wishlist Store (with AsyncStorage + Priority) */
+/* Persistent Wishlist Store (with AsyncStorage + Priority, NO GROUPING) */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export type Priority = 'red' | 'blue' | 'green' | 'none';
@@ -12,8 +9,7 @@ export type WishlistItem = {
   description: string;
   price: number;
   imageUri?: string;
-  priority: Priority;     
-  groupItems?: string[];  // later for grouping
+  priority: Priority;
 };
 
 let wishlist: WishlistItem[] = [];
@@ -27,19 +23,17 @@ export const loadWishlist = async () => {
     if (json) {
       const parsed: any[] = JSON.parse(json);
 
-      // Normalize existing data (in case older items have no priority / groupItems)
-      wishlist = parsed.map((item, index) => ({
-        id: String(item.id ?? index + 1),
+      wishlist = parsed.map((item) => ({
+        id: String(item.id),
         title: item.title ?? "",
         description: item.description ?? "",
-        price: typeof item.price === "number" ? item.price : Number(item.price) || 0,
-        imageUri: item.imageUri,
-        priority: item.priority ?? 'none',
-        groupItems: item.groupItems ?? [],
+        price: item.price ?? 0,
+        imageUri: item.imageUri ?? null,
+        priority: item.priority ?? "none",
       }));
 
       nextId = wishlist.length
-        ? Math.max(...wishlist.map(i => Number(i.id) || 0)) + 1
+        ? Math.max(...wishlist.map(i => Number(i.id))) + 1
         : 1;
     }
   } catch (err) {
@@ -63,8 +57,6 @@ export const addWishlistItem = (item: Omit<WishlistItem, 'id'>) => {
   const newItem: WishlistItem = {
     ...item,
     id: String(nextId++),
-    priority: item.priority ?? 'none',
-    groupItems: item.groupItems ?? [],
   };
 
   wishlist = [...wishlist, newItem];
@@ -79,6 +71,12 @@ export const updateWishlistItem = (id: string, updated: WishlistItem) => {
 
 // DELETE
 export const deleteWishlistItem = (id: string) => {
-  wishlist = wishlist.filter((item) => item.id !== id);
+  wishlist = wishlist.filter(item => item.id !== id);
+  persistWishlist();
+};
+
+// REORDER (keine Gruppen, nur flache Liste)
+export const reorderWishlist = (newOrder: WishlistItem[]) => {
+  wishlist = newOrder;
   persistWishlist();
 };

@@ -7,7 +7,7 @@ import * as ImagePicker from 'expo-image-picker';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'AddItem'>;
 
-export default function AddItemScreen({ navigation}: Props ) {
+export default function AddItemScreen({ navigation }: Props) {
   const [title, setTitle] = useState('');
   const [desc, setDescription] = useState('');
   const [price, setPrice] = useState('');
@@ -27,8 +27,13 @@ export default function AddItemScreen({ navigation}: Props ) {
   };
 
   const save = () => {
+    if (!title || !desc || !price) {
+      Alert.alert("Missing fields", "Please fill all fields.");
+      return;
+    }
+
     if (!imageUri) {
-      Alert.alert("Image required", "Please choose an image.");
+      Alert.alert("Image required", "Please pick an image.");
       return;
     }
 
@@ -38,53 +43,43 @@ export default function AddItemScreen({ navigation}: Props ) {
       price: parseFloat(price),
       imageUri,
       priority,
-      groupItems: [],
     });
 
     navigation.goBack();
   };
-
-  const priorityButtonStyle = (value: Priority) => ({
-    borderWidth: 1,
-    borderColor: priority === value ? '#000' : '#ccc',
-    padding: 8,
-    marginRight: 8,
-  });
-
 
   return (
     <View style={{ padding: 20 }}>
       <Text style={{ fontSize: 22, marginBottom: 10 }}>Add Item</Text>
 
       <Text>Title</Text>
-      <TextInput value={title} onChangeText={setTitle}
-        style={{ borderWidth: 1, borderColor: '#ccc', marginBottom: 10, padding: 8 }}
+      <TextInput
+        style={{ borderWidth: 1, padding: 8, marginBottom: 10 }}
+        value={title}
+        onChangeText={setTitle}
       />
 
       <Text>Description</Text>
-      <TextInput value={desc} onChangeText={setDescription}
-        style={{ borderWidth: 1, borderColor: '#ccc', marginBottom: 10, padding: 8 }}
+      <TextInput
+        style={{ borderWidth: 1, padding: 8, marginBottom: 10 }}
+        value={desc}
+        onChangeText={setDescription}
       />
 
       <Text>Price</Text>
-      <TextInput value={price} onChangeText={setPrice} keyboardType="numeric"
-        style={{ borderWidth: 1, borderColor: '#ccc', marginBottom: 10, padding: 8 }}
+      <TextInput
+        keyboardType="numeric"
+        style={{ borderWidth: 1, padding: 8, marginBottom: 10 }}
+        value={price}
+        onChangeText={setPrice}
       />
 
-      <Text style={{ marginTop: 10 }}>Priority</Text>
-      <View style={{ flexDirection: 'row', marginVertical: 10 }}>
-        <View style={priorityButtonStyle('red')}>
-          <Button title="Red" onPress={() => setPriority('red')} />
-        </View>
-        <View style={priorityButtonStyle('blue')}>
-          <Button title="Blue" onPress={() => setPriority('blue')} />
-        </View>
-        <View style={priorityButtonStyle('green')}>
-          <Button title="Green" onPress={() => setPriority('green')} />
-        </View>
-        <View style={priorityButtonStyle('none')}>
-          <Button title="None" onPress={() => setPriority('none')} />
-        </View>
+      <Text>Priority</Text>
+      <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 10 }}>
+        <Button title="Red" onPress={() => setPriority('red')} />
+        <Button title="Blue" onPress={() => setPriority('blue')} />
+        <Button title="Green" onPress={() => setPriority('green')} />
+        <Button title="None" onPress={() => setPriority('none')} />
       </View>
 
       <Button title="Pick Image" onPress={pickImage} />
@@ -92,13 +87,17 @@ export default function AddItemScreen({ navigation}: Props ) {
       {imageUri && (
         <Image
           source={{ uri: imageUri }}
-          style={{ width: 150, height: 150, marginTop: 20, alignSelf: 'center' }}
+          style={{
+            width: 150,
+            height: 150,
+            marginVertical: 10,
+            alignSelf: "center",
+            borderRadius: 10
+          }}
         />
       )}
 
-      <View style={{ marginTop: 20 }}>
-        <Button title="Save" onPress={save} />
-      </View>
+      <Button title="Save" onPress={save} />
     </View>
   );
 }

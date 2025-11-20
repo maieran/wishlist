@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, Button, Image } from 'react-native';
-import { getWishlist, updateWishlistItem, Priority } from '../store/wishlistStore';
+import {
+  getWishlist,
+  updateWishlistItem,
+  Priority,
+} from '../store/wishlistStore';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
 import * as ImagePicker from 'expo-image-picker';
@@ -46,7 +50,6 @@ export default function EditItemScreen({ route, navigation }: Props) {
       price: parseFloat(price),
       imageUri: imageUri ?? undefined,
       priority,
-      groupItems: item.groupItems ?? [],
     });
 
     navigation.goBack();
@@ -64,21 +67,29 @@ export default function EditItemScreen({ route, navigation }: Props) {
       <Text style={{ fontSize: 22, marginBottom: 10 }}>Edit Item</Text>
 
       <Text>Title</Text>
-      <TextInput value={title} onChangeText={setTitle}
+      <TextInput
+        value={title}
+        onChangeText={setTitle}
         style={{ borderWidth: 1, borderColor: '#ccc', marginBottom: 10, padding: 8 }}
       />
 
       <Text>Description</Text>
-      <TextInput value={desc} onChangeText={setDesc}
+      <TextInput
+        value={desc}
+        onChangeText={setDesc}
         style={{ borderWidth: 1, borderColor: '#ccc', marginBottom: 10, padding: 8 }}
       />
 
       <Text>Price</Text>
-      <TextInput value={price} onChangeText={setPrice} keyboardType="numeric"
+      <TextInput
+        value={price}
+        onChangeText={setPrice}
+        keyboardType="numeric"
         style={{ borderWidth: 1, borderColor: '#ccc', marginBottom: 10, padding: 8 }}
       />
 
-      <Text style={{ marginTop: 10 }}>Priority</Text>
+      {/* PRIORITY */}
+      <Text>Priority</Text>
       <View style={{ flexDirection: 'row', marginVertical: 10 }}>
         <View style={priorityButtonStyle('red')}>
           <Button title="Red" onPress={() => setPriority('red')} />
