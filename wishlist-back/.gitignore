@@ -1,0 +1,95 @@
+############################
+# macOS
+############################
+.DS_Store
+.AppleDouble
+.LSOverride
+
+############################
+# Java / Spring Boot
+############################
+target/
+*.class
+*.jar
+*.war
+*.ear
+*.iml
+*.ipr
+*.iws
+logs/
+*.log
+hs_err_pid*
+replay_pid*
+
+# Spring Boot environment files
+application-*.yml
+application-*.properties
+!application-example.yml
+!application-example.properties
+
+############################
+# Maven
+############################
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
+.settings/
+dependency-reduced-pom.xml
+
+############################
+# Gradle
+############################
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+gradle-app.setting
+*.gradle
+*.gradle.kts
+gradle.properties
+
+############################
+# IntelliJ IDEA
+############################
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+
+############################
+# Eclipse
+############################
+.project
+.classpath
+.settings/
+bin/
+
+############################
+# VS Code
+############################
+.vscode/
+
+############################
+# PostgreSQL
+############################
+*.sql~
+*.dump
+*.backup
+pgdata/
+postgres-data/
+db-data/
+.pgdata/
+
+############################
+# Docker
+############################
+docker-data/
+docker-compose.override.yml
+*.pid
+
+############################
+# Misc
+############################
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+

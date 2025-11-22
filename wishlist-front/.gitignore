@@ -1,41 +1,65 @@
-# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
-
-# dependencies
-node_modules/
-
-# Expo
-.expo/
-dist/
-web-build/
-expo-env.d.ts
-
-# Native
-.kotlin/
-*.orig.*
-*.jks
-*.p8
-*.p12
-*.key
-*.mobileprovision
-
-# Metro
-.metro-health-check*
-
-# debug
-npm-debug.*
-yarn-debug.*
-yarn-error.*
-
+############################
 # macOS
+############################
 .DS_Store
-*.pem
+.AppleDouble
+.LSOverride
 
-# local env files
-.env*.local
+############################
+# Node / React Native
+############################
+node_modules/
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+pnpm-lock.yaml
+.pnpm-store/
+dist/
+build/
 
-# typescript
-*.tsbuildinfo
+############################
+# Metro / bundler
+############################
+.expo/
+.expo-shared/
+web-build/
 
-# generated native folders
-/ios
-/android
+############################
+# iOS
+############################
+ios/Pods/
+ios/build/
+ios/DerivedData/
+*.xcworkspace
+*.xcuserdata/
+*.xcuserstate
+*.xcodeproj/project.xcworkspace/
+*.xcodeproj/xcuserdata/
+
+############################
+# Android
+############################
+android/.gradle/
+android/.idea/
+android/app/build/
+android/build/
+android/local.properties
+*.keystore
+*.jks
+
+############################
+# Environment
+############################
+.env
+.env.*
+.env.local
+.env.development
+.env.production
+
+############################
+# Misc
+############################
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
