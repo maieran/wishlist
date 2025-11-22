@@ -133,7 +133,7 @@ export default function WishlistScreen({ navigation }: Props) {
 
       {/* ADD ITEM */}
       <Button title="Add Item" onPress={() => navigation.navigate('AddItem')} />
-
+      
       {/* FLAT LIST — BASIC, CLEAN */}
       <FlatList
         style={{ marginTop: 10 }}
@@ -176,6 +176,8 @@ export default function WishlistScreen({ navigation }: Props) {
             />
           </TouchableOpacity>
         )}
+      />
+      <Button  title="Go to SilentSanta Demo" onPress={() => navigation.navigate("Team", { teamId: "demo123" })}
       />
     </View>
   );

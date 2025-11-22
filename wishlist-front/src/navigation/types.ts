@@ -3,4 +3,9 @@ export type RootStackParamList = {
   Wishlist: undefined;
   AddItem: undefined;
   EditItem: { id: string };
+
+  Team: { teamId: string };
+  MatchingProgress: { teamId: string };
+  MyPartner: { teamId: string; partnerId: string };
+  PartnerWishlist: { partnerId: string };
 };
