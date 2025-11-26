@@ -1,5 +1,7 @@
-/* Persistent Wishlist Store (with AsyncStorage + Priority, NO GROUPING) */
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from "expo-secure-store";
+import { API_BASE } from "../api/api";
+
+
 
 export type Priority = 'red' | 'blue' | 'green' | 'none';
 
@@ -12,71 +14,68 @@ export type WishlistItem = {
   priority: Priority;
 };
 
-let wishlist: WishlistItem[] = [];
-let nextId = 1;
+const BASE = API_BASE;
 
-const STORAGE_KEY = "wishlist-data";
-
-export const loadWishlist = async () => {
-  try {
-    const json = await AsyncStorage.getItem(STORAGE_KEY);
-    if (json) {
-      const parsed: any[] = JSON.parse(json);
-
-      wishlist = parsed.map((item) => ({
-        id: String(item.id),
-        title: item.title ?? "",
-        description: item.description ?? "",
-        price: item.price ?? 0,
-        imageUri: item.imageUri ?? null,
-        priority: item.priority ?? "none",
-      }));
-
-      nextId = wishlist.length
-        ? Math.max(...wishlist.map(i => Number(i.id))) + 1
-        : 1;
-    }
-  } catch (err) {
-    console.log("Error loading wishlist", err);
-  }
-};
-
-const persistWishlist = async () => {
-  try {
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(wishlist));
-  } catch (err) {
-    console.log("Error saving wishlist", err);
-  }
-};
-
-// GET
-export const getWishlist = () => [...wishlist];
-
-// ADD
-export const addWishlistItem = (item: Omit<WishlistItem, 'id'>) => {
-  const newItem: WishlistItem = {
-    ...item,
-    id: String(nextId++),
+// Hilfsfunktion für authorized requests
+async function authHeaders() {
+  const token = await SecureStore.getItemAsync("token");
+  return {
+    "Content-Type": "application/json",
+    Authorization: "Bearer " + token,
   };
+}
 
-  wishlist = [...wishlist, newItem];
-  persistWishlist();
-};
+// ---- LOAD ----
+export async function loadWishlist(): Promise<WishlistItem[]> {
+  const headers = await authHeaders();
+  const res = await fetch(`${BASE}/api/wishlist/me`, { headers });
 
-// UPDATE
-export const updateWishlistItem = (id: string, updated: WishlistItem) => {
-  wishlist = wishlist.map((item) => (item.id === id ? updated : item));
-  persistWishlist();
-};
+  if (!res.ok) {
+    console.log("Error loading wishlist", await res.text());
+    return [];
+  }
 
-// DELETE
-export const deleteWishlistItem = (id: string) => {
-  wishlist = wishlist.filter(item => item.id !== id);
-  persistWishlist();
-};
+  return await res.json();
+}
 
-// REORDER (keine Gruppen, nur flache Liste)
-export const reorderWishlist = (newOrder: WishlistItem[]) => {
-  wishlist = newOrder;
-  persistWishlist();
-};
+// ---- ADD ----
+export async function addWishlistItem(item: Omit<WishlistItem, "id">) {
+  const headers = await authHeaders();
+  const res = await fetch(`${BASE}/api/wishlist`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(item),
+  });
+
+  return await res.json(); // backend gibt neues Item zurück
+}
+
+// ---- UPDATE ----
+export async function updateWishlistItem(id: string, updated: WishlistItem) {
+  const headers = await authHeaders();
+  await fetch(`${BASE}/api/wishlist/${id}`, {
+    method: "PUT",
+    headers,
+    body: JSON.stringify(updated),
+  });
+}
+
+// ---- DELETE ----
+export async function deleteWishlistItem(id: string) {
+  const headers = await authHeaders();
+  await fetch(`${BASE}/api/wishlist/${id}`, {
+    method: "DELETE",
+    headers,
+  });
+}
+
+// ---- REORDER ----
+// optional (falls dein Backend Reihenfolge speichern soll)
+export async function reorderWishlist(newOrder: WishlistItem[]) {
+  const headers = await authHeaders();
+  await fetch(`${BASE}/api/wishlist/reorder`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(newOrder),
+  });
+}

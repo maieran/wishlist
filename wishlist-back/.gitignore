@@ -78,6 +78,9 @@ pgdata/
 postgres-data/
 db-data/
 .pgdata/
+db/local/*
+*.sql
+
 
 ############################
 # Docker

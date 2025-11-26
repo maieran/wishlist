@@ -11,7 +11,6 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import {
   WishlistItem,
-  getWishlist,
   deleteWishlistItem,
   loadWishlist,
   Priority,
@@ -28,15 +27,25 @@ export default function WishlistScreen({ navigation }: Props) {
     'priority' | 'alphaAsc' | 'alphaDesc' | 'priceAsc' | 'priceDesc' | 'none'
   >('priority');
 
-  const refresh = useCallback(() => {
-    setItems(getWishlist());
+  const reload = useCallback(async () => {
+    try {
+      const data = await loadWishlist();
+      setItems(data);
+    } catch (e) {
+      console.log("Error loading wishlist", e);
+    }
   }, []);
-
-  useFocusEffect(refresh);
 
   useEffect(() => {
-    loadWishlist().then(refresh);
-  }, []);
+    reload();
+  }, [reload]);
+
+  useFocusEffect(
+    useCallback(() => {
+      reload();
+    }, [reload])
+  );
+
 
   const getPriorityColor = (p: Priority) => {
     switch (p) {
@@ -84,7 +93,6 @@ export default function WishlistScreen({ navigation }: Props) {
 
   return (
     <View style={{ flex: 1, padding: 20 }}>
-
       {/* SEARCH */}
       <TextInput
         placeholder="Search..."
@@ -133,12 +141,12 @@ export default function WishlistScreen({ navigation }: Props) {
 
       {/* ADD ITEM */}
       <Button title="Add Item" onPress={() => navigation.navigate('AddItem')} />
-      
-      {/* FLAT LIST — BASIC, CLEAN */}
+
+      {/* LIST */}
       <FlatList
         style={{ marginTop: 10 }}
         data={visibleItems}
-        keyExtractor={(x) => x.id}
+        keyExtractor={(x) => String(x.id)}
         renderItem={({ item }) => (
           <TouchableOpacity
             onPress={() => navigation.navigate('EditItem', { id: item.id })}
@@ -169,15 +177,20 @@ export default function WishlistScreen({ navigation }: Props) {
 
             <Button
               title="Delete"
-              onPress={() => {
-                deleteWishlistItem(item.id);
-                refresh();
+              onPress={async () => {
+                await deleteWishlistItem(String(item.id));
+                await reload();
               }}
             />
           </TouchableOpacity>
         )}
       />
-      <Button  title="Go to SilentSanta Demo" onPress={() => navigation.navigate("Team", { teamId: "demo123" })}
+
+      <Button
+        title="Go to SilentSanta Demo"
+        onPress={() =>
+          navigation.navigate('Team', { teamId: 'demo123' })
+        }
       />
     </View>
   );

@@ -1,34 +1,44 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, Button, Image } from 'react-native';
-import {
-  getWishlist,
-  updateWishlistItem,
-  Priority,
-} from '../store/wishlistStore';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../navigation/types';
-import * as ImagePicker from 'expo-image-picker';
+import React, { useState, useEffect } from "react";
+import { View, Text, TextInput, Button, Image, Alert } from "react-native";
+import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import * as ImagePicker from "expo-image-picker";
+import { loadWishlist, updateWishlistItem } from "../store/wishlistStore";
+import { RootStackParamList } from "../navigation/types";
 
-type Props = NativeStackScreenProps<RootStackParamList, 'EditItem'>;
+type Props = NativeStackScreenProps<RootStackParamList, "EditItem">;
 
 export default function EditItemScreen({ route, navigation }: Props) {
   const { id } = route.params;
+  const [loading, setLoading] = useState(true);
 
-  const item = getWishlist().find((x) => x.id === id);
+  const [title, setTitle] = useState("");
+  const [desc, setDesc] = useState("");
+  const [price, setPrice] = useState("");
+  const [priority, setPriority] = useState<"red" | "blue" | "green" | "none">("none");
+  const [imageUri, setImageUri] = useState<string | null>(null);
 
-  if (!item) {
-    return (
-      <View style={{ padding: 20 }}>
-        <Text>Item not found</Text>
-      </View>
-    );
-  }
+  useEffect(() => {
+    async function fetchItem() {
+      const list = await loadWishlist();
+      const item = list.find((x) => x.id === id);
 
-  const [title, setTitle] = useState(item.title);
-  const [desc, setDesc] = useState(item.description);
-  const [price, setPrice] = useState(item.price.toString());
-  const [imageUri, setImageUri] = useState<string | null>(item.imageUri ?? null);
-  const [priority, setPriority] = useState<Priority>(item.priority ?? 'none');
+      if (!item) {
+        Alert.alert("Error", "Item not found.");
+        navigation.goBack();
+        return;
+      }
+
+      setTitle(item.title);
+      setDesc(item.description);
+      setPrice(item.price.toString());
+      setPriority(item.priority);
+      setImageUri(item.imageUri ?? null);
+
+      setLoading(false);
+    }
+
+    fetchItem();
+  }, [id]);
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -42,25 +52,29 @@ export default function EditItemScreen({ route, navigation }: Props) {
     }
   };
 
-  const save = () => {
-    updateWishlistItem(id, {
+  const save = async () => {
+    const updated = {
       id,
       title,
       description: desc,
       price: parseFloat(price),
-      imageUri: imageUri ?? undefined,
       priority,
-    });
+      imageUri: imageUri ?? undefined,
+    };
+
+
+    await updateWishlistItem(id, updated);
 
     navigation.goBack();
   };
 
-  const priorityButtonStyle = (value: Priority) => ({
-    borderWidth: 1,
-    borderColor: priority === value ? '#000' : '#ccc',
-    padding: 8,
-    marginRight: 8,
-  });
+  if (loading) {
+    return (
+      <View style={{ padding: 20 }}>
+        <Text>Loading...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={{ padding: 20 }}>
@@ -70,14 +84,14 @@ export default function EditItemScreen({ route, navigation }: Props) {
       <TextInput
         value={title}
         onChangeText={setTitle}
-        style={{ borderWidth: 1, borderColor: '#ccc', marginBottom: 10, padding: 8 }}
+        style={{ borderWidth: 1, padding: 8, marginBottom: 10 }}
       />
 
       <Text>Description</Text>
       <TextInput
         value={desc}
         onChangeText={setDesc}
-        style={{ borderWidth: 1, borderColor: '#ccc', marginBottom: 10, padding: 8 }}
+        style={{ borderWidth: 1, padding: 8, marginBottom: 10 }}
       />
 
       <Text>Price</Text>
@@ -85,24 +99,15 @@ export default function EditItemScreen({ route, navigation }: Props) {
         value={price}
         onChangeText={setPrice}
         keyboardType="numeric"
-        style={{ borderWidth: 1, borderColor: '#ccc', marginBottom: 10, padding: 8 }}
+        style={{ borderWidth: 1, padding: 8, marginBottom: 10 }}
       />
 
-      {/* PRIORITY */}
       <Text>Priority</Text>
-      <View style={{ flexDirection: 'row', marginVertical: 10 }}>
-        <View style={priorityButtonStyle('red')}>
-          <Button title="Red" onPress={() => setPriority('red')} />
-        </View>
-        <View style={priorityButtonStyle('blue')}>
-          <Button title="Blue" onPress={() => setPriority('blue')} />
-        </View>
-        <View style={priorityButtonStyle('green')}>
-          <Button title="Green" onPress={() => setPriority('green')} />
-        </View>
-        <View style={priorityButtonStyle('none')}>
-          <Button title="None" onPress={() => setPriority('none')} />
-        </View>
+      <View style={{ flexDirection: "row", marginBottom: 10 }}>
+        <Button title="Red" onPress={() => setPriority("red")} />
+        <Button title="Blue" onPress={() => setPriority("blue")} />
+        <Button title="Green" onPress={() => setPriority("green")} />
+        <Button title="None" onPress={() => setPriority("none")} />
       </View>
 
       <Button title="Change Image" onPress={pickImage} />
@@ -110,7 +115,7 @@ export default function EditItemScreen({ route, navigation }: Props) {
       {imageUri && (
         <Image
           source={{ uri: imageUri }}
-          style={{ width: 120, height: 120, marginVertical: 10, alignSelf: 'center' }}
+          style={{ width: 150, height: 150, marginVertical: 10, alignSelf: "center" }}
         />
       )}
 

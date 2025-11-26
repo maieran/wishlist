@@ -1,18 +1,18 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, Button, Image, Alert } from 'react-native';
-import { addWishlistItem, Priority } from '../store/wishlistStore';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../navigation/types';
-import * as ImagePicker from 'expo-image-picker';
+import React, { useState } from "react";
+import { View, Text, TextInput, Button, Image, Alert } from "react-native";
+import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import * as ImagePicker from "expo-image-picker";
+import { addWishlistItem } from "../store/wishlistStore";
+import { RootStackParamList } from "../navigation/types";
 
-type Props = NativeStackScreenProps<RootStackParamList, 'AddItem'>;
+type Props = NativeStackScreenProps<RootStackParamList, "AddItem">;
 
 export default function AddItemScreen({ navigation }: Props) {
-  const [title, setTitle] = useState('');
-  const [desc, setDescription] = useState('');
-  const [price, setPrice] = useState('');
+  const [title, setTitle] = useState("");
+  const [desc, setDescription] = useState("");
+  const [price, setPrice] = useState("");
+  const [priority, setPriority] = useState<"red" | "blue" | "green" | "none">("none");
   const [imageUri, setImageUri] = useState<string | null>(null);
-  const [priority, setPriority] = useState<Priority>('none');
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -26,24 +26,27 @@ export default function AddItemScreen({ navigation }: Props) {
     }
   };
 
-  const save = () => {
+  const save = async () => {
     if (!title || !desc || !price) {
-      Alert.alert("Missing fields", "Please fill all fields.");
+      Alert.alert("Missing fields", "Bitte alle Felder ausfüllen.");
       return;
     }
 
-    if (!imageUri) {
-      Alert.alert("Image required", "Please pick an image.");
+  const newItem = {
+    title,
+    description: desc,
+    price: parseFloat(price),
+    priority,
+    imageUri: imageUri ?? undefined,
+  };
+
+
+    const result = await addWishlistItem(newItem);
+
+    if (!result || !result.id) {
+      Alert.alert("Error", "Item konnte nicht gespeichert werden.");
       return;
     }
-
-    addWishlistItem({
-      title,
-      description: desc,
-      price: parseFloat(price),
-      imageUri,
-      priority,
-    });
 
     navigation.goBack();
   };
@@ -75,11 +78,11 @@ export default function AddItemScreen({ navigation }: Props) {
       />
 
       <Text>Priority</Text>
-      <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 10 }}>
-        <Button title="Red" onPress={() => setPriority('red')} />
-        <Button title="Blue" onPress={() => setPriority('blue')} />
-        <Button title="Green" onPress={() => setPriority('green')} />
-        <Button title="None" onPress={() => setPriority('none')} />
+      <View style={{ flexDirection: "row", marginBottom: 10 }}>
+        <Button title="Red" onPress={() => setPriority("red")} />
+        <Button title="Blue" onPress={() => setPriority("blue")} />
+        <Button title="Green" onPress={() => setPriority("green")} />
+        <Button title="None" onPress={() => setPriority("none")} />
       </View>
 
       <Button title="Pick Image" onPress={pickImage} />
@@ -87,13 +90,7 @@ export default function AddItemScreen({ navigation }: Props) {
       {imageUri && (
         <Image
           source={{ uri: imageUri }}
-          style={{
-            width: 150,
-            height: 150,
-            marginVertical: 10,
-            alignSelf: "center",
-            borderRadius: 10
-          }}
+          style={{ width: 150, height: 150, marginVertical: 10, alignSelf: "center" }}
         />
       )}
 
