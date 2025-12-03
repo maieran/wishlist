@@ -31,8 +31,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         String path = request.getServletPath();
 
-        // 1️⃣ Skip login and public routes
-        if (path.startsWith("/api/auth/")) {
+        // 1️⃣ Skip ONLY the login endpoint
+        if (path.equals("/api/auth/login")) {
             filterChain.doFilter(request, response);
             return;
         }

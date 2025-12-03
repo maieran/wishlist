@@ -4,7 +4,6 @@ import com.silentsanta.wishlist_back.user.dto.UserLoginRequest;
 import com.silentsanta.wishlist_back.user.dto.UserLoginResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -30,6 +29,23 @@ public class UserController {
 
         return ResponseEntity.ok(response);
     }
+
+
+    @GetMapping("/me")
+    public ResponseEntity<?> me() {
+        UserEntity user = userService.getAuthenticatedUser();
+
+        return ResponseEntity.ok(
+                new UserLoginResponse(
+                        null, // kein Token hier
+                        user.getId(),
+                        user.getDisplayName(),
+                        user.isAdmin()
+                )
+        );
+    }
+
+
 
 
 }
