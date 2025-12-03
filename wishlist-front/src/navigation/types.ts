@@ -10,4 +10,9 @@ export type RootStackParamList = {
   MatchingProgress: { teamId: string };
   MyPartner: { teamId: string; partnerId: string };
   PartnerWishlist: { partnerId: string };
+
+  AdminUsers: undefined;
+  AdminCreateUser: undefined;
+  AdminEditUser: { userId: number };
+
 };

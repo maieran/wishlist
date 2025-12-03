@@ -14,15 +14,20 @@ export async function apiGet(path: string) {
   }).then(res => res.json());
 }
 
-export async function apiPost(path: string, body: any) {
+export async function apiPost(path: string, body: any, method: "POST" | "PUT" | "DELETE" = "POST") {
   const token = await SecureStore.getItemAsync("token");
 
   return fetch(API_BASE + path, {
-    method: "POST",
+    method,
     headers: {
       "Content-Type": "application/json",
       Authorization: "Bearer " + token,
     },
-    body: JSON.stringify(body),
-  }).then(res => res.json());
+    body: method === "DELETE" ? undefined : JSON.stringify(body),
+  })
+    .then(async (res) => {
+      if (res.status === 204) return {}; // no content
+      return res.json();
+    });
 }
+
