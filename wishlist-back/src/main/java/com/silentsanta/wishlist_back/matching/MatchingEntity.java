@@ -15,7 +15,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 @Entity
-@Table(name = "matchings")
+@Table(name = "matching")
 @Setter
 @Getter
 public class MatchingEntity {
@@ -23,10 +23,9 @@ public class MatchingEntity {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
-  @ManyToOne(optional = false)
+  @ManyToOne
   private TeamEntity team;
 
-  @Column(nullable = false)
   private Instant createdAt;
 }
 

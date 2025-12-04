@@ -17,6 +17,7 @@ import {
 } from '../store/wishlistStore';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
+import { apiGet } from "../api/api";   // <-- needed for matching config
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Wishlist'>;
 
@@ -27,10 +28,19 @@ export default function WishlistScreen({ navigation }: Props) {
     'priority' | 'alphaAsc' | 'alphaDesc' | 'priceAsc' | 'priceDesc' | 'none'
   >('priority');
 
+  // ⛔ Partner erst sichtbar wenn matching executed = true
+  const [wasMatchingRun, setWasMatchingRun] = useState(false);
+
   const reload = useCallback(async () => {
     try {
+      // 1️⃣ Wishlist laden
       const data = await loadWishlist();
       setItems(data);
+
+      // 2️⃣ MatchingStatus laden
+      const cfg = await apiGet("/api/matching/config");
+      setWasMatchingRun(cfg.executed === true);
+
     } catch (e) {
       console.log("Error loading wishlist", e);
     }
@@ -185,13 +195,19 @@ export default function WishlistScreen({ navigation }: Props) {
           </TouchableOpacity>
         )}
       />
+            {/* PARTNER BUTTON – only visible after matching */}
+      {wasMatchingRun && (
+        <Button
+          title="🎅 Meinen Partner anzeigen"
+          onPress={() => navigation.navigate("MyPartner")}
+        />
+      )}
 
-      <Button
-        title="Go to SilentSanta Demo"
-        onPress={() =>
-          navigation.navigate('Team', { teamId: 'demo123' })
-        }
-      />
+      {!wasMatchingRun && (
+        <Text style={{ marginBottom: 12, color: "#888" }}>
+          Dein Silent-Santa-Partner erscheint, sobald das Matching ausgeführt wurde.
+        </Text>
+      )}
     </View>
   );
 }

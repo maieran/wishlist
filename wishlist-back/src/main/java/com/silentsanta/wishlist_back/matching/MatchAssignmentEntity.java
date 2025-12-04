@@ -6,23 +6,23 @@ import lombok.Getter;
 import lombok.Setter;
 
 @Entity
+@Table(name = "match_assignment")
 @Getter
 @Setter
-@Table(name = "match_assignments")
 public class MatchAssignmentEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(optional = false)
+    @ManyToOne
     private MatchingEntity matching;
 
-    @ManyToOne(optional = false)
+    @ManyToOne
     @JoinColumn(name = "giver_id")
     private UserEntity giver;
 
-    @ManyToOne(optional = false)
+    @ManyToOne
     @JoinColumn(name = "receiver_id")
     private UserEntity receiver;
 

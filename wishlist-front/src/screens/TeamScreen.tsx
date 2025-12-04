@@ -1,49 +1,41 @@
-import React from "react";
-import { View, Text, Button } from "react-native";
+import React, { useEffect, useState } from "react";
+import { View, Text, Button, FlatList } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/types";
+import { apiGet } from "../api/api";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Team">;
 
-export default function TeamScreen({ route, navigation }: Props) {
-  const { teamId } = route.params;
+type TeamMember = {
+  userId: number;
+  displayName: string;
+  username: string;
+};
 
-  const isAdmin = true;
+export default function TeamScreen() {
+  const [members, setMembers] = useState<TeamMember[]>([]);
 
-  const teamMembers = [
-    { id: "1", name: "André" },
-    { id: "2", name: "Maria" },
-    { id: "3", name: "John" },
-    { id: "4", name: "Sarah" },
-  ];
+  useEffect(() => {
+    async function load() {
+      const data = await apiGet("/api/team/members");
+      setMembers(data);
+    }
+    load();
+  }, []);
 
   return (
-    <View style={{ flex: 1, padding: 20 }}>
-      <Text style={{ fontSize: 28, marginBottom: 20 }}>
-        SilentSanta Team 🎅
-      </Text>
+    <View style={{ padding: 20 }}>
+      <Text style={{ fontSize: 24 }}>Mein Team</Text>
 
-      <Text>Team ID: {teamId}</Text>
-
-      <Text style={{ marginTop: 10, marginBottom: 10 }}>Members:</Text>
-      {teamMembers.map((m) => (
-        <Text key={m.id}>• {m.name}</Text>
-      ))}
-
-      <View style={{ marginTop: 40 }}>
-        {isAdmin && (
-          <Button
-            title="Start Matching"
-            onPress={() =>
-              navigation.navigate("MatchingProgress", { teamId })
-            }
-          />
+      <FlatList
+        data={members}
+        keyExtractor={(m) => String(m.userId)}
+        renderItem={({ item }) => (
+          <Text style={{ padding: 10 }}>
+            {item.displayName} ({item.username})
+          </Text>
         )}
-
-        {!isAdmin && (
-          <Text>Waiting for admin to start matching…</Text>
-        )}
-      </View>
+      />
     </View>
   );
 }

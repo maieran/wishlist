@@ -10,4 +10,5 @@ import java.util.Optional;
 public interface MatchAssignmentRepository extends JpaRepository<MatchAssignmentEntity, Long> {
 
     Optional<MatchAssignmentEntity> findByMatchingTeamIdAndGiverId(Long teamId, Long giverId);
+
 }

@@ -1,32 +1,32 @@
-import React from "react";
-import { View, Text } from "react-native";
+import React, { useEffect, useState } from "react";
+import { View, Text, FlatList } from "react-native";
+import { apiGet } from "../api/api";
+import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { RootStackParamList } from "../navigation/types";
+type Props = NativeStackScreenProps<RootStackParamList, "PartnerWishlist">;
 
-export default function PartnerWishlistScreen() {
-  const wishlist = [
-    { id: "w1", title: "PS5 Controller", price: 69 },
-    { id: "w2", title: "Nike Socks", price: 18 },
-  ];
+export default function MyPartnerWishlistScreen({ route } : Props) {
+  const { partnerId } = route.params;
+  const [items, setItems] = useState([]);
+
+  useEffect(() => {
+    async function load() {
+      const data = await apiGet(`/api/wishlist/user/${partnerId}`);
+      setItems(data);
+    }
+    load();
+  }, []);
 
   return (
-    <View style={{ flex: 1, padding: 20 }}>
-      <Text style={{ fontSize: 28, marginBottom: 20 }}>
-        Partner Wishlist 🎄
-      </Text>
+    <View style={{ padding: 20 }}>
+      <Text style={{ fontSize: 24 }}>Partner Wunschliste</Text>
 
-      {wishlist.map((item) => (
-        <View
-          key={item.id}
-          style={{
-            padding: 15,
-            backgroundColor: "#f3f3f3",
-            borderRadius: 10,
-            marginBottom: 10,
-          }}
-        >
-          <Text style={{ fontSize: 18 }}>{item.title}</Text>
-          <Text>{item.price} €</Text>
-        </View>
-      ))}
+      <FlatList
+        data={items}
+        renderItem={({ item }) => (
+          <Text style={{ padding: 8 }}>{item.title}</Text>
+        )}
+      />
     </View>
   );
 }
