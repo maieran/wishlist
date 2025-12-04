@@ -7,14 +7,18 @@ export type RootStackParamList = {
   AddItem: undefined;
   EditItem: { id: string };
 
-  Team: undefined;                   // simplified
-  MatchingProgress: undefined;       // no params needed anymore
-  MyPartner: undefined;              // FIXED
+  Team: undefined;
+  TeamCreate: undefined;
+  TeamJoin: undefined;
+
+  MatchingProgress: { teamId: number };
+  MyPartner: undefined;
   PartnerWishlist: { partnerId: number };
 
   AdminUsers: undefined;
   AdminCreateUser: undefined;
   AdminEditUser: { userId: number };
+
   MatchingDate: undefined;
   AdminDashboard: undefined;
 };

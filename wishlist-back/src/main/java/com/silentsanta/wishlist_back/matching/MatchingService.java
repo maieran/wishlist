@@ -33,11 +33,11 @@ public class MatchingService {
 
         List<TeamMemberEntity> members = teamMemberRepository.findByTeamId(teamId);
 
-        if (members.size() < 2) return;
+        if (members.size() < 2) return; // zu wenige Leute
 
         List<Long> userIds = members.stream()
-            .map(m -> m.getUser().getId())
-            .toList();
+                .map(m -> m.getUser().getId())
+                .toList();
 
         Map<Long, Long> mapping = matchingAlgorithm.generateMatching(userIds);
 
@@ -64,12 +64,12 @@ public class MatchingService {
 
     public Optional<UserEntity> findMyPartner(Long teamId, Long userId) {
         return matchAssignmentRepository
-            .findByMatchingTeamIdAndGiverId(teamId, userId)
-            .map(MatchAssignmentEntity::getReceiver);
+                .findByMatchingTeamIdAndGiverId(teamId, userId)
+                .map(MatchAssignmentEntity::getReceiver);
     }
 
-    //────────── AUTOMATISCHER CRON JOB ──────────
-    @Scheduled(fixedRate = 60000)
+    // ────────── AUTOMATISCHER CRON JOB ──────────
+    @Scheduled(fixedRate = 60000) // alle 60 Sekunden
     @Transactional
     public void checkAndRunMatching() {
 
@@ -83,14 +83,18 @@ public class MatchingService {
         }
     }
 
-    //────────── MATCHING AUSFÜHREN ──────────
+    // ────────── MATCHING AUSFÜHREN ──────────
     @Transactional
     public void runSilentSantaMatching() {
 
         MatchingConfig cfg = matchingConfigRepository.findById(1L)
-            .orElseGet(() -> { MatchingConfig c = new MatchingConfig(); c.setId(1L); return c; });
+                .orElseGet(() -> {
+                    MatchingConfig c = new MatchingConfig();
+                    c.setId(1L);
+                    return c;
+                });
 
-        if (cfg.isExecuted()) return;
+        if (cfg.isExecuted()) return; // schon gelaufen
 
         List<TeamEntity> teams = teamRepository.findAll();
         for (TeamEntity team : teams) {
@@ -101,12 +105,16 @@ public class MatchingService {
         matchingConfigRepository.save(cfg);
     }
 
-    //────────── MANUELLER START durch Admin ──────────
+    // ────────── MANUELLER START durch Admin ──────────
     @Transactional
     public void runManually() {
 
         MatchingConfig cfg = matchingConfigRepository.findById(1L)
-            .orElseGet(() -> { MatchingConfig c = new MatchingConfig(); c.setId(1L); return c; });
+                .orElseGet(() -> {
+                    MatchingConfig c = new MatchingConfig();
+                    c.setId(1L);
+                    return c;
+                });
 
         cfg.setExecuted(false); // erzwinge neues Matching
         matchingConfigRepository.save(cfg);
@@ -114,4 +122,3 @@ public class MatchingService {
         runSilentSantaMatching();
     }
 }
-

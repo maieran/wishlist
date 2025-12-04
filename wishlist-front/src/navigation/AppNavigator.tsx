@@ -2,6 +2,8 @@ import React from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
+import { RootStackParamList } from "./types";
+
 import LandingScreen from "../screens/LandingScreen";
 import HomeScreen from "../screens/HomeScreen";
 import LoginScreen from "../screens/LoginScreen";
@@ -9,6 +11,8 @@ import WishListScreen from "../screens/WishlistScreen";
 import AddItemScreen from "../screens/AddItemScreen";
 import EditItemScreen from "../screens/EditItemScreen";
 import TeamScreen from "../screens/TeamScreen";
+import TeamCreateScreen from "../screens/TeamCreateScreen";
+import TeamJoinScreen from "../screens/TeamJoinScreen";
 import MatchingInProgressScreen from "../screens/MatchingInProgressScreen";
 import MyPartnerScreen from "../screens/MyPartnerScreen";
 import PartnerWishlistScreen from "../screens/MyPartnerWishlistScreen";
@@ -18,7 +22,7 @@ import AdminEditUserScreen from "../screens/AdminEditUserScreen";
 import MatchingDateScreen from "../screens/MatchingDateScreen";
 import AdminDashboardScreen from "../screens/AdminDashboardScreen";
 
-const Stack = createNativeStackNavigator();
+const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function AppNavigator() {
   return (
@@ -35,6 +39,8 @@ export default function AppNavigator() {
         <Stack.Screen name="AddItem" component={AddItemScreen} />
         <Stack.Screen name="EditItem" component={EditItemScreen} />
         <Stack.Screen name="Team" component={TeamScreen} />
+        <Stack.Screen name="TeamCreate" component={TeamCreateScreen} />
+        <Stack.Screen name="TeamJoin" component={TeamJoinScreen} />
         <Stack.Screen name="MatchingProgress" component={MatchingInProgressScreen} />
         <Stack.Screen name="MyPartner" component={MyPartnerScreen} />
         <Stack.Screen name="PartnerWishlist" component={PartnerWishlistScreen} />

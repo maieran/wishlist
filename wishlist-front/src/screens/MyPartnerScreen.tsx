@@ -1,59 +1,63 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, Button } from "react-native";
-import { apiGet } from "../api/api";
-
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/types";
+import { apiTeamMe } from "../api/team";
+import { apiMyPartner } from "../api/matching";
+
 type Props = NativeStackScreenProps<RootStackParamList, "MyPartner">;
 
 type PartnerResponse = {
   found: boolean;
   userId?: number;
   displayName?: string;
+  message?: string;
 };
 
 export default function MyPartnerScreen({ navigation }: Props) {
-  const [partner, setPartner] = useState<PartnerResponse | null>(null);
   const [teamId, setTeamId] = useState<number | null>(null);
+  const [partner, setPartner] = useState<PartnerResponse | null>(null);
 
   useEffect(() => {
-    async function load() {
-      const meTeam = await apiGet("/api/team/me");
-      setTeamId(meTeam.teamId);
+    async function loadTeam() {
+      const meTeam = await apiTeamMe();
+      if ("hasTeam" in meTeam && !meTeam.hasTeam) {
+        setTeamId(null);
+        setPartner({ found: false, message: "Du bist in keinem Team." });
+        return;
+      }
+      const t = "hasTeam" in meTeam ? meTeam : { hasTeam: true, ...meTeam };
+      setTeamId(t.teamId);
     }
-    load();
+    loadTeam();
   }, []);
 
   useEffect(() => {
     if (!teamId) return;
 
     async function loadPartner() {
-      const data = await apiGet(`/api/matching/me?teamId=${teamId}`);
+      const data = await apiMyPartner(teamId);
       setPartner(data);
     }
     loadPartner();
   }, [teamId]);
 
-
-  // 1️⃣ Noch keine Antwort erhalten → loading
-  if (partner === null) {
+  if (!partner) {
     return <Text style={{ padding: 20 }}>Lädt...</Text>;
   }
 
-  // 2️⃣ Antwort bekommen, aber found=false
   if (!partner.found) {
     return (
-      <Text style={{ padding: 20 }}>
-        Kein Partner vom Matching gefunden.
-      </Text>
+      <View style={{ padding: 20 }}>
+        <Text>Kein Partner vom Matching gefunden.</Text>
+        {partner.message && <Text>{partner.message}</Text>}
+      </View>
     );
   }
 
-  // 3️⃣ Normaler Screen
   return (
     <View style={{ padding: 20 }}>
-      <Text style={{ fontSize: 24 }}>Dein Partner 🎁</Text>
-
+      <Text style={{ fontSize: 24 }}>Du bist SilentSanta von 🎁</Text>
       <Text style={{ fontSize: 20, fontWeight: "bold" }}>
         {partner.displayName}
       </Text>
