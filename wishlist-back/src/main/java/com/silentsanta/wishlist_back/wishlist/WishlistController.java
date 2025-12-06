@@ -21,7 +21,14 @@ public class WishlistController {
         return ResponseEntity.ok(wishlistService.getMyWishlist());
     }
 
-    // POST /api/wishlist
+    // GET /api/wishlist/user/{userId}
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<List<WishlistItemResponse>> getWishlistByUser(
+            @PathVariable Long userId
+    ) {
+        return ResponseEntity.ok(wishlistService.getWishlistByUserId(userId));
+    }
+
     @PostMapping
     public ResponseEntity<WishlistItemResponse> createItem(
             @RequestBody WishlistItemRequest request
@@ -29,7 +36,6 @@ public class WishlistController {
         return ResponseEntity.ok(wishlistService.createItem(request));
     }
 
-    // PUT /api/wishlist/{id}
     @PutMapping("/{id}")
     public ResponseEntity<WishlistItemResponse> updateItem(
             @PathVariable Long id,
@@ -38,10 +44,10 @@ public class WishlistController {
         return ResponseEntity.ok(wishlistService.updateItem(id, request));
     }
 
-    // DELETE /api/wishlist/{id}
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteItem(@PathVariable Long id) {
         wishlistService.deleteItem(id);
         return ResponseEntity.noContent().build();
     }
 }
+

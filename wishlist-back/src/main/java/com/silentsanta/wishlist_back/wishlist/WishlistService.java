@@ -16,10 +16,19 @@ public class WishlistService {
     private final WishlistRepository repository;
     private final UserService userService;
 
+    // Eigene Wishlist
     public List<WishlistItemResponse> getMyWishlist() {
         UserEntity me = userService.getAuthenticatedUser();
 
         return repository.findByOwnerId(me.getId())
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    // Wishlist eines anderen Users (z.B. Partner)
+    public List<WishlistItemResponse> getWishlistByUserId(Long userId) {
+        return repository.findByOwnerId(userId)
                 .stream()
                 .map(this::toResponse)
                 .toList();
@@ -34,12 +43,9 @@ public class WishlistService {
         entity.setDescription(request.description());
         entity.setPrice(request.price());
         entity.setImageUrl(request.imageUrl());
-        entity.setPriority(
-                request.priority() != null ? request.priority() : "none"
-        );
+        entity.setPriority(request.priority() != null ? request.priority() : "none");
 
         repository.save(entity);
-
         return toResponse(entity);
     }
 
@@ -49,7 +55,6 @@ public class WishlistService {
         WishlistItemEntity entity = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Wishlist item not found"));
 
-        // Sicherheit: nur der Besitzer darf bearbeiten
         if (!entity.getOwner().getId().equals(me.getId())) {
             throw new RuntimeException("Not allowed to edit this item");
         }
@@ -58,12 +63,9 @@ public class WishlistService {
         entity.setDescription(request.description());
         entity.setPrice(request.price());
         entity.setImageUrl(request.imageUrl());
-        entity.setPriority(
-                request.priority() != null ? request.priority() : "none"
-        );
+        entity.setPriority(request.priority() != null ? request.priority() : "none");
 
         repository.save(entity);
-
         return toResponse(entity);
     }
 
@@ -80,6 +82,7 @@ public class WishlistService {
         repository.delete(entity);
     }
 
+    // Mapping entity → DTO
     private WishlistItemResponse toResponse(WishlistItemEntity e) {
         return new WishlistItemResponse(
                 e.getId(),
@@ -91,3 +94,4 @@ public class WishlistService {
         );
     }
 }
+
