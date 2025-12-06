@@ -23,7 +23,12 @@ export async function apiGet(path: string) {
 }
 
 
-export async function apiPost(path: string, body: any, method: "POST" | "PUT" | "DELETE" = "POST") {
+// ⭐⭐⭐ WICHTIGER FIX HIER ⭐⭐⭐
+export async function apiPost(
+  path: string,
+  body: any,
+  method: "POST" | "PUT" | "DELETE" = "POST"
+) {
   const token = await SecureStore.getItemAsync("token");
 
   const res = await fetch(API_BASE + path, {
@@ -36,12 +41,19 @@ export async function apiPost(path: string, body: any, method: "POST" | "PUT" | 
   });
 
   const text = await res.text();
+  let parsed: any;
 
   try {
-    return JSON.parse(text);
+    parsed = JSON.parse(text);
   } catch {
-    return { message: text };
+    parsed = text;
   }
+
+  // ❗ FIX: Wenn Backend Fehler sendet -> THROW ❗
+  if (!res.ok) {
+    const message = parsed?.message || "Unbekannter Fehler beim Server.";
+    throw new Error(message);
+  }
+
+  return parsed;
 }
-
-

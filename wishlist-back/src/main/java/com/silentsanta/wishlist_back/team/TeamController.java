@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 @RestController
@@ -41,7 +42,7 @@ public class TeamController {
 
         TeamEntity team = new TeamEntity();
         team.setName(name);
-        team.setInviteCode(UUID.randomUUID().toString().substring(0, 6).toUpperCase());
+        team.setInviteCode(UUID.randomUUID().toString().substring(0, 4).toUpperCase());
         team.setOwner(me);
         teamRepository.save(team);
 
@@ -61,11 +62,15 @@ public class TeamController {
     public ResponseEntity<?> joinTeam(@RequestBody Map<String, String> body) {
         String inviteCode = body.get("inviteCode");
         if (inviteCode == null || inviteCode.isBlank()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "inviteCode required"));
+            return ResponseEntity.badRequest().body(Map.of("error", "Einladungscode wird benötigt"));
         }
 
-        TeamEntity team = teamRepository.findByInviteCode(inviteCode)
-                .orElseThrow(() -> new RuntimeException("Team not found"));
+        Optional<TeamEntity> optionalTeam = teamRepository.findByInviteCode(inviteCode);
+        if (!optionalTeam.isPresent()) {
+            return ResponseEntity.status(404).body("Ungültiger Einladungscode");
+        }
+
+        TeamEntity team = optionalTeam.get();
 
         UserEntity me = userService.getAuthenticatedUser();
 

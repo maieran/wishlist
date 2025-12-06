@@ -3,6 +3,8 @@ import { View, Text, Button, FlatList } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/types";
 import { apiTeamMe } from "../api/team";
+import { useIsFocused } from "@react-navigation/native";
+
 
 type Props = NativeStackScreenProps<RootStackParamList, "Team">;
 
@@ -25,19 +27,24 @@ type TeamMeResponse =
 
 export default function TeamScreen({ navigation }: Props) {
   const [team, setTeam] = useState<TeamMeResponse | null>(null);
+  const isFocused = useIsFocused();
 
   useEffect(() => {
+
     async function load() {
       const res = await apiTeamMe();
       if ("hasTeam" in res) {
         setTeam(res);
       } else {
-        // Backend-Response ist TeamMeResponse direkt
         setTeam({ hasTeam: true, ...res });
       }
     }
-    load();
-  }, []);
+
+    if (isFocused) {
+      load();
+    }
+  }, [isFocused]);
+
 
   if (!team) {
     return <Text style={{ padding: 20 }}>Lädt Team...</Text>;
