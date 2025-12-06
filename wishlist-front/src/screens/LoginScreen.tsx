@@ -4,6 +4,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
 import * as SecureStore from "expo-secure-store";
 import { apiPost } from "../api/api";
+import { ApiError } from "../api/api"; // Pfad anpassen, falls nötig
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
 
@@ -15,19 +16,33 @@ export default function LoginScreen({ navigation }: Props) {
     try {
       const data = await apiPost("/api/auth/login", { username, password });
 
-      if (!data || !data.token) {
-        Alert.alert("Login failed", "Invalid username or password");
+      await SecureStore.setItemAsync("token", data.token);
+      navigation.replace("Home");
+
+    } catch (err: any) {
+      console.log("Login error:", err);
+
+      if (err instanceof ApiError) {
+        if (err.status === 404) {
+          Alert.alert("Login fehlgeschlagen", "Benutzername existiert nicht.");
+          return;
+        }
+
+        if (err.status === 401) {
+          Alert.alert("Login fehlgeschlagen", "Passwort ist falsch.");
+          return;
+        }
+
+        Alert.alert("Serverfehler", err.message || "Unbekannter Fehler.");
         return;
       }
 
-      await SecureStore.setItemAsync("token", data.token);
-
-      navigation.replace("Home");
-    } catch (err) {
-      console.log(err);
-      Alert.alert("Error", "Could not connect to backend.");
+      // Falls mal was ganz anderes schiefgeht (Netzwerk, JS-Fehler etc.)
+      Alert.alert("Serverfehler", "Der Server konnte nicht erreicht werden.");
     }
   }
+
+
 
   return (
     <View style={{ padding: 20 }}>

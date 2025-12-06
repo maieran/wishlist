@@ -15,19 +15,33 @@ export default function TeamJoinScreen({ navigation }: Props) {
       return;
     }
 
-  try {
-    await apiTeamJoin(code.trim());
-    Alert.alert("Erfolg", "Du bist dem Team beigetreten.", [
-      {
-        text: "OK",
-        onPress: () => navigation.navigate("Team"),
-      },
-    ]);
-  } catch (e: any) {
-    Alert.alert("Fehler", e.message || "Einladungscode ist ungültig.");
+    try {
+      await apiTeamJoin(code.trim());
+
+      Alert.alert("Erfolg", "Du bist dem Team beigetreten.", [
+        {
+          text: "OK",
+          onPress: () => navigation.navigate("Team"),
+        },
+      ]);
+
+    } catch (err: any) {
+      console.log("Join error:", err);
+
+      if (err.status === 404) {
+        Alert.alert("Fehler", "Der Einladungs-Code ist ungültig.");
+        return;
+      }
+
+      if (err.status === 409) {
+        Alert.alert("Fehler", "Du bist bereits in einem Team.");
+        return;
+      }
+
+      Alert.alert("Fehler", "Konnte Team nicht beitreten.");
+    }
   }
 
-  }
 
   return (
     <View style={{ padding: 20 }}>

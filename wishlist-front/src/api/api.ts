@@ -2,6 +2,16 @@ import * as SecureStore from "expo-secure-store";
 
 export const API_BASE = "http://192.168.0.125:8080"; // your mac's IP
 
+export class ApiError extends Error {
+  status: number;
+  body: any;
+
+  constructor(message: string, status: number, body: any) {
+    super(message);
+    this.status = status;
+    this.body = body;
+  }
+}
 
 export async function apiGet(path: string) {
   const token = await SecureStore.getItemAsync("token");
@@ -22,8 +32,6 @@ export async function apiGet(path: string) {
   }
 }
 
-
-// ⭐⭐⭐ WICHTIGER FIX HIER ⭐⭐⭐
 export async function apiPost(
   path: string,
   body: any,
@@ -49,10 +57,10 @@ export async function apiPost(
     parsed = text;
   }
 
-  // ❗ FIX: Wenn Backend Fehler sendet -> THROW ❗
+  // ❗ FIX: Hier ApiError verwenden
   if (!res.ok) {
     const message = parsed?.message || "Unbekannter Fehler beim Server.";
-    throw new Error(message);
+    throw new ApiError(message, res.status, parsed);
   }
 
   return parsed;
