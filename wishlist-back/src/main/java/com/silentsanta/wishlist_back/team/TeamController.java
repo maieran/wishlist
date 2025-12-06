@@ -1,117 +1,75 @@
 package com.silentsanta.wishlist_back.team;
 
-import com.silentsanta.wishlist_back.user.UserEntity;
-import com.silentsanta.wishlist_back.user.UserService;
-import lombok.RequiredArgsConstructor;
+import com.silentsanta.wishlist_back.team.dto.TeamResponse;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/team")
-@RequiredArgsConstructor
 public class TeamController {
 
-    private final TeamRepository teamRepository;
-    private final TeamMemberRepository teamMemberRepository;
-    private final UserService userService;
+    private final TeamService teamService;
 
-    // DTO fürs Frontend
-    public record TeamMemberDto(Long userId, String username, String displayName) {}
-    public record TeamMeResponse(
-            Long teamId,
-            String name,
-            String inviteCode,
-            boolean owner,
-            List<TeamMemberDto> members
-    ) {}
-
-    // ────────── Team erstellen ──────────
-    @PostMapping("/create")
-    public ResponseEntity<?> createTeam(@RequestBody Map<String, String> body) {
-        String name = body.get("name");
-        if (name == null || name.isBlank()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Name required"));
-        }
-
-        UserEntity me = userService.getAuthenticatedUser();
-
-        TeamEntity team = new TeamEntity();
-        team.setName(name);
-        team.setInviteCode(UUID.randomUUID().toString().substring(0, 6).toUpperCase());
-        team.setOwner(me);
-        teamRepository.save(team);
-
-        TeamMemberEntity member = new TeamMemberEntity();
-        member.setTeam(team);
-        member.setUser(me);
-        teamMemberRepository.save(member);
-
-        return ResponseEntity.ok(Map.of(
-                "teamId", team.getId(),
-                "inviteCode", team.getInviteCode()
-        ));
+    public TeamController(TeamService teamService) {
+        this.teamService = teamService;
     }
 
-    // ────────── Team beitreten ──────────
-    @PostMapping("/join")
-    public ResponseEntity<?> joinTeam(@RequestBody Map<String, String> body) {
-        String inviteCode = body.get("inviteCode");
-        if (inviteCode == null || inviteCode.isBlank()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "inviteCode required"));
-        }
-
-        TeamEntity team = teamRepository.findByInviteCode(inviteCode)
-                .orElseThrow(() -> new RuntimeException("Team not found"));
-
-        UserEntity me = userService.getAuthenticatedUser();
-
-        boolean alreadyMember = teamMemberRepository.existsByTeamIdAndUserId(team.getId(), me.getId());
-        if (!alreadyMember) {
-            TeamMemberEntity member = new TeamMemberEntity();
-            member.setTeam(team);
-            member.setUser(me);
-            teamMemberRepository.save(member);
-        }
-
-        return ResponseEntity.ok(Map.of(
-                "teamId", team.getId(),
-                "name", team.getName()
-        ));
-    }
-
-    // ────────── /api/team/me → aktuelles Team ──────────
+    // Nutzer sieht sein Team
     @GetMapping("/me")
     public ResponseEntity<?> myTeam() {
-        UserEntity me = userService.getAuthenticatedUser();
+        TeamEntity t = teamService.myTeam();
 
-        List<TeamMemberEntity> memberships = teamMemberRepository.findByUserId(me.getId());
-
-        if (memberships.isEmpty()) {
-            return ResponseEntity.ok(Map.of("hasTeam", false));
+        if (t == null) {
+            return ResponseEntity.ok(
+                    new TeamMeResponse(false, null, null, null)
+            );
         }
 
-        TeamEntity team = memberships.get(0).getTeam();
-        boolean isOwner = team.getOwner() != null && team.getOwner().getId().equals(me.getId());
-
-        List<TeamMemberDto> members = teamMemberRepository.findByTeamId(team.getId())
-                .stream()
-                .map(tm -> new TeamMemberDto(
-                        tm.getUser().getId(),
-                        tm.getUser().getUsername(),
-                        tm.getUser().getDisplayName()
-                ))
-                .toList();
-
-        return ResponseEntity.ok(new TeamMeResponse(
-                team.getId(),
-                team.getName(),
-                team.getInviteCode(),
-                isOwner,
-                members
-        ));
+        // vollständiges Team inklusive Mitglieder
+        return ResponseEntity.ok(
+                teamService.buildTeamResponse(t)
+        );
     }
+
+    // ADMIN: Team erstellen
+    @PostMapping("/create")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> createTeam(@RequestBody TeamCreateRequest req) {
+        return ResponseEntity.ok(teamService.createTeam(req.name()));
+    }
+
+    @PostMapping("/join")
+    public ResponseEntity<?> join(@RequestBody TeamJoinRequest req) {
+        return ResponseEntity.ok(teamService.joinTeam(req.inviteCode()));
+    }
+
+    @PostMapping("/leave")
+    public ResponseEntity<?> leave() {
+        teamService.leaveTeam();
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/delete/{teamId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> deleteTeam(@PathVariable Long teamId) {
+        teamService.deleteTeam(teamId);
+        return ResponseEntity.ok().build();
+    }
+
+    // OPTIONAL falls App später Details braucht
+    @GetMapping("/me/details")
+    public ResponseEntity<?> myTeamDetails() {
+        TeamEntity t = teamService.myTeam();
+        if (t == null) return ResponseEntity.ok(null);
+        return ResponseEntity.ok(teamService.buildTeamResponse(t));
+    }
+
+    // ---- REQUEST RECORDS ----
+
+    record TeamCreateRequest(String name) {}
+    record TeamJoinRequest(String inviteCode) {}
+
+    // ---- RESPONSE RECORD ----
+    record TeamMeResponse(boolean hasTeam, Long teamId, String name, String inviteCode) {}
 }

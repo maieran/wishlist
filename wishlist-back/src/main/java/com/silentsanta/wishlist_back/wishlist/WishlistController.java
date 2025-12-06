@@ -1,8 +1,12 @@
 package com.silentsanta.wishlist_back.wishlist;
 
+import com.silentsanta.wishlist_back.matching.MatchAssignmentRepository;
+import com.silentsanta.wishlist_back.user.UserService;
 import com.silentsanta.wishlist_back.wishlist.dto.WishlistItemRequest;
 import com.silentsanta.wishlist_back.wishlist.dto.WishlistItemResponse;
+
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,34 +18,57 @@ import java.util.List;
 public class WishlistController {
 
     private final WishlistService wishlistService;
+    private final MatchAssignmentRepository matchAssignmentRepository;
+    private final UserService userService;
 
-    // GET /api/wishlist/me
-    @GetMapping("/me")
-    public ResponseEntity<List<WishlistItemResponse>> getMyWishlist() {
-        return ResponseEntity.ok(wishlistService.getMyWishlist());
+    // ─────────────────────────────
+    // EIGENE WISHLIST
+    // ─────────────────────────────
+
+    @GetMapping
+    public ResponseEntity<List<WishlistItemResponse>> listMyItems() {
+        return ResponseEntity.ok(wishlistService.listMyItems());
     }
 
-    // POST /api/wishlist
     @PostMapping
-    public ResponseEntity<WishlistItemResponse> createItem(
-            @RequestBody WishlistItemRequest request
-    ) {
-        return ResponseEntity.ok(wishlistService.createItem(request));
+    public ResponseEntity<WishlistItemResponse> createItem(@RequestBody WishlistItemRequest req) {
+        WishlistItemResponse created = wishlistService.createItem(req);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
-    // PUT /api/wishlist/{id}
     @PutMapping("/{id}")
     public ResponseEntity<WishlistItemResponse> updateItem(
             @PathVariable Long id,
-            @RequestBody WishlistItemRequest request
+            @RequestBody WishlistItemRequest req
     ) {
-        return ResponseEntity.ok(wishlistService.updateItem(id, request));
+        WishlistItemResponse updated = wishlistService.updateItem(id, req);
+        return ResponseEntity.ok(updated);
     }
 
-    // DELETE /api/wishlist/{id}
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteItem(@PathVariable Long id) {
         wishlistService.deleteItem(id);
         return ResponseEntity.noContent().build();
+    }
+
+    // ─────────────────────────────
+    // PARTNER-WISHLIST
+    // ─────────────────────────────
+    @GetMapping("/of-user/{userId}")
+    public ResponseEntity<List<WishlistItemResponse>> getWishlistOfUser(@PathVariable Long userId) {
+
+        Long meId = userService.getAuthenticatedUser().getId();
+
+        // ✅ Nur wenn ich GIVER → userId RECEIVER bin, darf ich die Wishlist sehen
+        boolean isPartner = matchAssignmentRepository
+                .existsByGiverIdAndReceiverId(meId, userId);
+
+        if (!isPartner) {
+            // kein Partner → 403
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        List<WishlistItemResponse> items = wishlistService.listItemsOfUser(userId);
+        return ResponseEntity.ok(items);
     }
 }

@@ -11,6 +11,8 @@ import WishListScreen from "../screens/WishlistScreen";
 import AddItemScreen from "../screens/AddItemScreen";
 import EditItemScreen from "../screens/EditItemScreen";
 import TeamScreen from "../screens/TeamScreen";
+import TeamAdminListScreen from "../screens/TeamAdminListScreen";
+import TeamAssignUserScreen from "../screens/TeamAssignUserScreen";
 import TeamCreateScreen from "../screens/TeamCreateScreen";
 import TeamJoinScreen from "../screens/TeamJoinScreen";
 import MatchingInProgressScreen from "../screens/MatchingInProgressScreen";
@@ -39,6 +41,8 @@ export default function AppNavigator() {
         <Stack.Screen name="AddItem" component={AddItemScreen} />
         <Stack.Screen name="EditItem" component={EditItemScreen} />
         <Stack.Screen name="Team" component={TeamScreen} />
+        <Stack.Screen name="TeamAdminList" component={TeamAdminListScreen} />
+        <Stack.Screen name="TeamAssignUser" component={TeamAssignUserScreen} />
         <Stack.Screen name="TeamCreate" component={TeamCreateScreen} />
         <Stack.Screen name="TeamJoin" component={TeamJoinScreen} />
         <Stack.Screen name="MatchingProgress" component={MatchingInProgressScreen} />

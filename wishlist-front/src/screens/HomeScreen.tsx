@@ -35,9 +35,9 @@ export default function HomeScreen({ navigation }: Props) {
       <View style={{ height: 10 }} />
       <Button title="Mein Team" onPress={() => navigation.navigate("Team")} />
       <View style={{ height: 10 }} />
-      <Button title="Team erstellen" onPress={() => navigation.navigate("TeamCreate")} />
-      <View style={{ height: 10 }} />
-      <Button title="Team beitreten" onPress={() => navigation.navigate("TeamJoin")} />
+      {/* <Button title="Team erstellen" onPress={() => navigation.navigate("TeamCreate")} />
+      <View style={{ height: 10 }} />*/
+      <Button title="Team beitreten" onPress={() => navigation.navigate("TeamJoin")} /> }
 
       {isAdmin && (
         <>

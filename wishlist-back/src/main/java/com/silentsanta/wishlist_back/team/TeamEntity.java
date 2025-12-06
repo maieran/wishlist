@@ -5,23 +5,26 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.List;
+
 @Entity
+@Table(name = "teams")
 @Getter
 @Setter
-@Table(name = "teams")
 public class TeamEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
     private String name;
 
-    // Team-Owner (Admin)
-    @ManyToOne(optional = false)
+    @Column(unique = true)
+    private String inviteCode;
+
+    @ManyToOne
     private UserEntity owner;
 
-    @Column(nullable = false, unique = true)
-    private String inviteCode;
+    @OneToMany(mappedBy = "team", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    private List<TeamMemberEntity> members;
 }

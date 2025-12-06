@@ -7,6 +7,8 @@ export type RootStackParamList = {
   AddItem: undefined;
   EditItem: { id: string };
 
+  TeamAdminList: undefined;
+  TeamAssignUser: { teamId: number };
   Team: undefined;
   TeamCreate: undefined;
   TeamJoin: undefined;

@@ -6,7 +6,7 @@ import { API_BASE } from "../api/api";
 export type Priority = 'red' | 'blue' | 'green' | 'none';
 
 export type WishlistItem = {
-  id: string;
+  id: number;
   title: string;
   description: string;
   price: number;
@@ -35,28 +35,66 @@ export async function loadWishlist(): Promise<WishlistItem[]> {
     return [];
   }
 
-  return await res.json();
+  const raw = await res.json();
+
+  // BACKEND → FRONTEND MAPPING
+  return raw.map((item: any) => ({
+    id: item.id,
+    title: item.name,                     // FIX
+    description: item.description ?? "",
+    price: item.price ?? 0,
+    priority: item.priority ?? "none",    // FIX
+    imageUri: item.imageUrl ?? undefined, // FIX
+  }));
 }
 
 // ---- ADD ----
 export async function addWishlistItem(item: Omit<WishlistItem, "id">) {
   const headers = await authHeaders();
+
+  const body = {
+    name: item.title,                 // FIX
+    description: item.description,
+    price: item.price,
+    priority: item.priority,
+    imageUrl: item.imageUri ?? null,  // placeholder for future cloud upload
+  };
+
   const res = await fetch(`${BASE}/api/wishlist`, {
     method: "POST",
     headers,
-    body: JSON.stringify(item),
+    body: JSON.stringify(body),
   });
 
-  return await res.json(); // backend gibt neues Item zurück
+  const saved = await res.json();
+
+  // return mapped version
+  return {
+    id: saved.id,
+    title: saved.name,                  
+    description: saved.description ?? "",
+    price: saved.price ?? 0,
+    priority: saved.priority ?? "none",
+    imageUri: saved.imageUrl ?? undefined,
+  };
 }
 
 // ---- UPDATE ----
 export async function updateWishlistItem(id: string, updated: WishlistItem) {
   const headers = await authHeaders();
+
+  const body = {
+    name: updated.title,
+    description: updated.description,
+    price: updated.price,
+    priority: updated.priority,
+    imageUrl: updated.imageUri ?? null,
+  };
+
   await fetch(`${BASE}/api/wishlist/${id}`, {
     method: "PUT",
     headers,
-    body: JSON.stringify(updated),
+    body: JSON.stringify(body),
   });
 }
 

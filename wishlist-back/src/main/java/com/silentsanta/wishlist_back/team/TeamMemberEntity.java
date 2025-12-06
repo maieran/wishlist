@@ -6,18 +6,21 @@ import lombok.Getter;
 import lombok.Setter;
 
 @Entity
+@Table(name = "team_members")
 @Getter
 @Setter
-@Table(name = "team_members")
 public class TeamMemberEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(optional = false)
+    @ManyToOne
     private TeamEntity team;
 
-    @ManyToOne(optional = false)
+    @ManyToOne
     private UserEntity user;
+
+    // NEU: Flag ob dieser User Admin des Teams ist
+    private boolean admin;
 }

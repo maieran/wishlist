@@ -6,6 +6,6 @@ import java.util.List;
 
 public interface WishlistRepository extends JpaRepository<WishlistItemEntity, Long> {
 
+    // Alle Items des Owners (User)
     List<WishlistItemEntity> findByOwnerId(Long ownerId);
-
 }

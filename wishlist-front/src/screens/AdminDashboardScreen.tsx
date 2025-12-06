@@ -21,6 +21,7 @@ export default function AdminDashboardScreen({ navigation }: Props) {
     <View style={{ padding: 20 }}>
       <Text style={{ fontSize: 24 }}>Admin Dashboard</Text>
 
+      {/* Dein bestehender Code */}
       <Button
         title="Matching Datum konfigurieren"
         onPress={() => navigation.navigate("MatchingDate")}
@@ -35,6 +36,30 @@ export default function AdminDashboardScreen({ navigation }: Props) {
         title="Matching JETZT ausführen"
         color="red"
         onPress={runMatchingNow}
+      />
+
+      {/* ───────────────────────────── */}
+      {/*      🔥 NEUE TEAM-SECTION     */}
+      {/* ───────────────────────────── */}
+
+      <View style={{ height: 30 }} />
+      <Text style={{ fontSize: 20 }}>Team Verwaltung</Text>
+
+      <Button
+        title="Team erstellen"
+        onPress={() => navigation.navigate("TeamCreate")}
+      />
+      <View style={{ height: 10 }} />
+
+      <Button
+        title="Alle Teams ansehen"
+        onPress={() => navigation.navigate("TeamAdminList")}
+      />
+      <View style={{ height: 10 }} />
+
+      <Button
+        title="Benutzer einem Team zuweisen"
+        onPress={() => navigation.navigate("TeamAssignUser")}
       />
     </View>
   );
