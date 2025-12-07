@@ -92,4 +92,18 @@ public class TeamController {
                 members
         ));
     }
+
+    @PostMapping("/delete")
+    public ResponseEntity<?> deleteTeam() {
+        teamService.deleteTeam();
+        return ResponseEntity.noContent().build(); // 204
+    }
+
+    @PostMapping("/kick/{userId}")
+    public ResponseEntity<?> kickMember(@PathVariable Long userId) {
+        teamService.kickMember(userId);
+        return ResponseEntity.noContent().build(); // 204
+    }
+
+
 }

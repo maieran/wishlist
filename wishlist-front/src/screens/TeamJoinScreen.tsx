@@ -4,7 +4,12 @@ import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/types";
 import { apiTeamJoin } from "../api/team";
 
+
 type Props = NativeStackScreenProps<RootStackParamList, "TeamJoin">;
+
+
+
+
 
 export default function TeamJoinScreen({ navigation }: Props) {
   const [code, setCode] = useState("");

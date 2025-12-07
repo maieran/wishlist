@@ -85,4 +85,65 @@ public class TeamService {
         // Member entfernen
         memberships.forEach(teamMemberRepository::delete);
     }
+
+    public void deleteTeam() {
+    UserEntity user = userService.getAuthenticatedUser();
+
+    // Prüfen, ob der User überhaupt in einem Team ist
+    List<TeamMemberEntity> memberships = teamMemberRepository.findByUserId(user.getId());
+        if (memberships.isEmpty()) {
+            throw new ApiException(400, "Not in a team");
+        }
+
+        TeamEntity team = memberships.get(0).getTeam();
+
+        // Owner Prüfung
+        if (!team.getOwner().getId().equals(user.getId())) {
+            throw new ApiException(403, "Only owner can delete the team");
+        }
+
+        // Alle Members löschen
+        List<TeamMemberEntity> allMembers = teamMemberRepository.findByTeamId(team.getId());
+        allMembers.forEach(teamMemberRepository::delete);
+
+        // Team löschen
+        teamRepository.delete(team);
+    }
+
+    public void kickMember(Long userId) {
+        UserEntity owner = userService.getAuthenticatedUser();
+
+        // Owner muss in einem Team sein
+        List<TeamMemberEntity> memberships = teamMemberRepository.findByUserId(owner.getId());
+        if (memberships.isEmpty()) {
+            throw new ApiException(400, "Not in a team");
+        }
+
+        TeamEntity team = memberships.get(0).getTeam();
+
+        // Prüfen: ist owner wirklich der owner?
+        if (!team.getOwner().getId().equals(owner.getId())) {
+            throw new ApiException(403, "Only owner can kick members");
+        }
+
+        // Prüfen: existiert dieser User in dem Team?
+        List<TeamMemberEntity> targetMemberships = teamMemberRepository.findByUserId(userId);
+
+        if (targetMemberships.isEmpty() ||
+            !targetMemberships.get(0).getTeam().getId().equals(team.getId())) {
+            throw new ApiException(404, "User not in your team");
+        }
+
+        UserEntity target = targetMemberships.get(0).getUser();
+
+        // Owner kann sich selbst nicht kicken
+        if (target.getId().equals(owner.getId())) {
+            throw new ApiException(409, "Owner cannot kick themselves");
+        }
+
+        // kicken
+        teamMemberRepository.delete(targetMemberships.get(0));
+    }
+
+
 }
