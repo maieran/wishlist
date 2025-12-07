@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, Button, FlatList, Alert } from "react-native";
+import { View, Text, Button, FlatList, Alert, Share } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/types";
 import { apiTeamLeave, apiTeamMe} from "../api/team";
 import { apiGet } from "../api/api";
 import { useIsFocused } from "@react-navigation/native";
 import { ApiError, apiPost } from "../api/api";
-
+import * as Clipboard from "expo-clipboard";
 
 
 type Props = NativeStackScreenProps<RootStackParamList, "Team">;
@@ -25,6 +25,7 @@ type TeamMeResponse =
       name: string;
       inviteCode: string;
       owner: boolean;
+      ownerId: number;
       members: TeamMember[];
     };
 
@@ -33,16 +34,11 @@ export default function TeamScreen({ navigation }: Props) {
   const [myUserId, setMyUserId] = useState<number | null>(null);
   const isFocused = useIsFocused();
   
-
-
-
-
-
   async function onKick(userId: number) {
     try {
       await apiPost(`/api/team/kick/${userId}`, {});
       Alert.alert("Erfolgreich", "Mitglied wurde entfernt.");
-      navigation.navigate("Team");
+      navigation.navigate("Home");
     } catch (err: any) {
       if (err instanceof ApiError) {
         Alert.alert("Fehler", err.message);
@@ -52,21 +48,48 @@ export default function TeamScreen({ navigation }: Props) {
     }
   }
 
-  async function onDeleteTeam() {
-    try {
-      await apiPost("/api/team/delete", {});
-      Alert.alert("Erledigt", "Team wurde aufgelöst.");
-      navigation.navigate("Team");
-    } catch (err: any) {
-
-      if (err instanceof ApiError) {
-        Alert.alert("Fehler", err.message);
-        return;
-      }
-
-      Alert.alert("Serverfehler", "Konnte Team nicht löschen.");
-    }
+  function confirmKick(userId: number, displayName: string) {
+    Alert.alert(
+      "Mitglied entfernen",
+      `Willst du ${displayName} wirklich aus dem Team entfernen?`,
+      [
+        { text: "Abbrechen", style: "cancel" },
+        { 
+          text: "Entfernen",
+          style: "destructive",
+          onPress: () => onKick(userId)
+        }
+      ]
+    );
   }
+
+  async function onDeleteTeam() {
+    Alert.alert(
+      "Team auflösen",
+      "Willst du dieses Team wirklich dauerhaft löschen? Das kann nicht rückgängig gemacht werden.",
+      [
+        { text: "Abbrechen", style: "cancel" },
+        {
+          text: "Löschen",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await apiPost("/api/team/delete", {});
+              Alert.alert("Erfolg", "Team wurde erfolgreich aufgelöst.");
+              navigation.navigate("Home");
+            } catch (err: any) {
+              if (err instanceof ApiError) {
+                Alert.alert("Fehler", err.message);
+                return;
+              }
+              Alert.alert("Serverfehler", "Team konnte nicht gelöscht werden.");
+            }
+          }
+        }
+      ]
+    );
+  }
+
 
 
   async function onLeave() {
@@ -99,6 +122,20 @@ export default function TeamScreen({ navigation }: Props) {
       Alert.alert("Fehler", "Keine Verbindung zum Server.");
     }
   }
+
+  async function copyInviteCode() {
+    if (!team || !team.hasTeam) return;
+    await Clipboard.setStringAsync(team.inviteCode);
+    Alert.alert("Kopiert", "Der Einladungscode wurde in die Zwischenablage kopiert.");
+  }
+
+  async function shareInviteCode() {
+    if (!team || !team.hasTeam) return;
+    await Share.share({
+      message: `Tritt meinem Team bei! Einladungscode: ${team.inviteCode}`
+    });
+  }
+
 
   useEffect(() => {
     async function load() {
@@ -136,33 +173,54 @@ export default function TeamScreen({ navigation }: Props) {
 
   return (
     <View style={{ padding: 20 }}>
-      <Text style={{ fontSize: 22 }}>{team.name}</Text>
-      <Text>Einladungscode: {team.inviteCode}</Text>
+      <Text style={{ fontSize: 24, fontWeight: "600", marginBottom: 10 }}>
+        {team.name}
+      </Text>
 
-      <Text style={{ marginTop: 20, fontSize: 18 }}>Mitglieder:</Text>
+      <Text style={{ fontSize: 16, marginBottom: 6 }}>
+        Einladungscode: {team.inviteCode}
+      </Text>
+
+      <View style={{ flexDirection: "row", gap: 10, marginBottom: 20 }}>
+        <Button title="Code kopieren" onPress={copyInviteCode} />
+        <Button title="Teilen" onPress={shareInviteCode} />
+      </View>
+
+      <Text style={{ marginTop: 10, marginBottom: 6, fontSize: 18, fontWeight: "500" }}>
+        Mitglieder
+      </Text>
       <FlatList
         data={team.members}
         keyExtractor={(m) => String(m.userId)}
         
         renderItem={({ item }) => (
           <View style={{ 
-            flexDirection: "row", 
+            flexDirection: "row",
             justifyContent: "space-between", 
             alignItems: "center",
-            paddingVertical: 6 }}>
-            <Text>{item.displayName} ({item.username})</Text>
+            paddingVertical: 6,
+            }}>
+
+            <Text style={{ fontSize: 16 }}>
+              {item.displayName} ({item.username})
+            </Text>
+
+            {item.userId === team.ownerId && (
+              <Text style={{ marginLeft: 8, color: "gold", fontWeight: "bold" }}>
+                👑 Owner
+              </Text>
+            )}
 
             {team.owner && item.userId !== myUserId && (
               <Button
                 title="Kick"
                 color="red"
-                onPress={() => onKick(item.userId)}
+                onPress={() => confirmKick(item.userId, item.displayName)}
               />
             )}
+
           </View>
         )}
-
-
       />
 
       {/* // Nur User kann das Team verlassen */}

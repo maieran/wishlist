@@ -89,7 +89,8 @@ public class TeamController {
                 team.getName(),
                 team.getInviteCode(),
                 isOwner,
-                members
+                members,
+                team.getOwner().getId()
         ));
     }
 

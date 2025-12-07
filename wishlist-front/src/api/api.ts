@@ -1,9 +1,13 @@
 import * as SecureStore from "expo-secure-store";
 
-export const API_BASE = "http://172.20.10.7:8080"
+export const API_BASE = "http://172.18.77.177:8080";
+
+//"http://127.0.0.1:8080"
+
+//"http://172.20.10.7:8080"
 
 
-"http://192.168.0.125:8080";
+//"http://192.168.0.125:8080";
 
 // your mac's IP
 

@@ -31,7 +31,7 @@ public class TeamService {
         TeamEntity team = new TeamEntity();
         team.setName(name);
         team.setOwner(user);
-        team.setInviteCode(UUID.randomUUID().toString().substring(0, 6).toUpperCase());
+        team.setInviteCode(UUID.randomUUID().toString().substring(0, 4).toUpperCase());
 
         teamRepository.save(team);
 

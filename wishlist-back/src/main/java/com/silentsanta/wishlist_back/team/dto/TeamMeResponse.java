@@ -7,5 +7,7 @@ public record TeamMeResponse(
         String name,
         String inviteCode,
         boolean owner,
-        List<TeamMemberDto> members
+        List<TeamMemberDto> members,
+        Long ownerId // highlight the owner of the Group
+        
 ) {}
