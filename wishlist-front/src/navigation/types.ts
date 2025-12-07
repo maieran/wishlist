@@ -12,6 +12,7 @@ export type RootStackParamList = {
   TeamJoin: undefined;
 
   MatchingProgress: { teamId: number };
+  //MatchingProgress: undefined;
   MyPartner: undefined;
   PartnerWishlist: { partnerId: number };
 

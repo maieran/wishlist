@@ -4,6 +4,8 @@ import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/types";
 import { fetchMatchingDate, adminSetMatchingDate, adminClearMatchingDate } from "../api/settings";
 import { apiGet } from "../api/api";
+import DateTimePicker from "@react-native-community/datetimepicker";
+
 
 type Props = NativeStackScreenProps<RootStackParamList, "MatchingDate">;
 
@@ -20,6 +22,8 @@ export default function MatchingDateScreen({ navigation }: Props) {
   const [matchingIso, setMatchingIso] = useState<string | null>(null);
   const [inputValue, setInputValue] = useState("");
   const [countdown, setCountdown] = useState<string>("");
+  const [showPicker, setShowPicker] = useState(false);
+
 
   // 1) /api/auth/me → Admin flag holen
   useEffect(() => {
@@ -92,23 +96,20 @@ export default function MatchingDateScreen({ navigation }: Props) {
 
   async function onSave() {
     try {
-      // Sehr simpel: Admin tippt ISO Datetime (z.B. 2025-12-19T18:00:00Z)
-      // Später ersetzen wir das durch einen richtigen DateTimePicker
-      const d = new Date(inputValue);
-      if (isNaN(d.getTime())) {
-        Alert.alert("Fehler", "Bitte gültiges ISO-Datum eingeben (z.B. 2025-12-19T18:00:00Z)");
+      if (!inputValue) {
+        Alert.alert("Fehler", "Bitte ein Datum auswählen.");
         return;
       }
 
-      const iso = d.toISOString();
-      await adminSetMatchingDate(iso);
-      setMatchingIso(iso);
+      await adminSetMatchingDate(inputValue);
+      setMatchingIso(inputValue);
+
       Alert.alert("Gespeichert", "Matching-Datum wurde gesetzt.");
     } catch (e) {
-      console.log(e);
       Alert.alert("Fehler", "Konnte Matching-Datum nicht speichern.");
     }
   }
+
 
   async function onClear() {
     try {
@@ -155,21 +156,24 @@ export default function MatchingDateScreen({ navigation }: Props) {
         <View style={{ marginTop: 30 }}>
           <Text style={{ fontSize: 18, marginBottom: 6 }}>Admin – Datum setzen</Text>
           <Text style={{ marginBottom: 6 }}>
-            ISO-Datum eingeben, z.B.:{"\n"}
-            2025-12-19T18:00:00Z
+            Datum für Silent Santa auswählen:
           </Text>
 
-          <TextInput
-            placeholder="2025-12-19T18:00:00Z"
-            value={inputValue}
-            onChangeText={setInputValue}
-            style={{
-              borderWidth: 1,
-              borderColor: "#ccc",
-              padding: 8,
-              marginBottom: 10,
-            }}
-          />
+          {showPicker && (
+            <DateTimePicker
+              value={matchingIso ? new Date(matchingIso) : new Date()}
+              mode="datetime"
+              display="default"
+              onChange={(event, selectedDate) => {
+                setShowPicker(false);
+                if (selectedDate) {
+                  const iso = selectedDate.toISOString();
+                  setInputValue(iso);     // ersetzt ISO TextInput
+                }
+              }}
+            />
+          )}
+
 
           <Button title="Matching-Datum speichern" onPress={onSave} />
           <View style={{ height: 10 }} />

@@ -30,6 +30,26 @@ type TeamMeResponse =
     };
 
 export default function TeamScreen({ navigation }: Props) {
+
+  React.useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <View style={{ flexDirection: "row", gap: 10 }}>
+          <Button 
+            title="+" 
+            onPress={() => navigation.navigate("TeamCreate")} 
+          />
+          <Button 
+            title="Join" 
+            onPress={() => navigation.navigate("TeamJoin")} 
+          />
+        </View>
+      )
+    });
+  }, [navigation]);
+
+
+
   const [team, setTeam] = useState<TeamMeResponse | null>(null);
   const [myUserId, setMyUserId] = useState<number | null>(null);
   const isFocused = useIsFocused();
