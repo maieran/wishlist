@@ -1,5 +1,8 @@
 package com.silentsanta.wishlist_back.team;
 
+import com.silentsanta.wishlist_back.shared.ApiException;
+import com.silentsanta.wishlist_back.team.dto.TeamMeResponse;
+import com.silentsanta.wishlist_back.team.dto.TeamMemberDto;
 import com.silentsanta.wishlist_back.user.UserEntity;
 import com.silentsanta.wishlist_back.user.UserService;
 import lombok.RequiredArgsConstructor;
@@ -8,48 +11,26 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/team")
 @RequiredArgsConstructor
 public class TeamController {
 
-    private final TeamRepository teamRepository;
-    private final TeamMemberRepository teamMemberRepository;
+    private final TeamService teamService;
     private final UserService userService;
-
-    // DTO fürs Frontend
-    public record TeamMemberDto(Long userId, String username, String displayName) {}
-    public record TeamMeResponse(
-            Long teamId,
-            String name,
-            String inviteCode,
-            boolean owner,
-            List<TeamMemberDto> members
-    ) {}
+    private final TeamMemberRepository teamMemberRepository;
 
     // ────────── Team erstellen ──────────
     @PostMapping("/create")
     public ResponseEntity<?> createTeam(@RequestBody Map<String, String> body) {
         String name = body.get("name");
+
         if (name == null || name.isBlank()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Name required"));
+            throw new ApiException(400, "Name required");
         }
 
-        UserEntity me = userService.getAuthenticatedUser();
-
-        TeamEntity team = new TeamEntity();
-        team.setName(name);
-        team.setInviteCode(UUID.randomUUID().toString().substring(0, 4).toUpperCase());
-        team.setOwner(me);
-        teamRepository.save(team);
-
-        TeamMemberEntity member = new TeamMemberEntity();
-        member.setTeam(team);
-        member.setUser(me);
-        teamMemberRepository.save(member);
+        TeamEntity team = teamService.createTeam(name);
 
         return ResponseEntity.ok(Map.of(
                 "teamId", team.getId(),
@@ -62,30 +43,22 @@ public class TeamController {
     public ResponseEntity<?> joinTeam(@RequestBody Map<String, String> body) {
         String inviteCode = body.get("inviteCode");
         if (inviteCode == null || inviteCode.isBlank()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Einladungscode wird benötigt"));
+            throw new ApiException(400, "Einladungscode wird benötigt");
         }
 
-        Optional<TeamEntity> optionalTeam = teamRepository.findByInviteCode(inviteCode);
-        if (!optionalTeam.isPresent()) {
-            return ResponseEntity.status(404).body("Ungültiger Einladungscode");
-        }
-
-        TeamEntity team = optionalTeam.get();
-
-        UserEntity me = userService.getAuthenticatedUser();
-
-        boolean alreadyMember = teamMemberRepository.existsByTeamIdAndUserId(team.getId(), me.getId());
-        if (!alreadyMember) {
-            TeamMemberEntity member = new TeamMemberEntity();
-            member.setTeam(team);
-            member.setUser(me);
-            teamMemberRepository.save(member);
-        }
+        TeamEntity team = teamService.joinTeam(inviteCode);
 
         return ResponseEntity.ok(Map.of(
                 "teamId", team.getId(),
                 "name", team.getName()
         ));
+    }
+
+    // ────────── Team verlassen (NEU) ──────────
+    @PostMapping("/leave")
+    public ResponseEntity<?> leave() {
+        teamService.leaveTeam();
+        return ResponseEntity.noContent().build();
     }
 
     // ────────── /api/team/me → aktuelles Team ──────────
@@ -100,7 +73,7 @@ public class TeamController {
         }
 
         TeamEntity team = memberships.get(0).getTeam();
-        boolean isOwner = team.getOwner() != null && team.getOwner().getId().equals(me.getId());
+        boolean isOwner = team.getOwner().getId().equals(me.getId());
 
         List<TeamMemberDto> members = teamMemberRepository.findByTeamId(team.getId())
                 .stream()

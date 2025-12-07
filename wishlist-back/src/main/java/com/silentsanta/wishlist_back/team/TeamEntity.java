@@ -6,9 +6,9 @@ import lombok.Getter;
 import lombok.Setter;
 
 @Entity
+@Table(name = "teams")
 @Getter
 @Setter
-@Table(name = "teams")
 public class TeamEntity {
 
     @Id

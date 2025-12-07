@@ -11,3 +11,7 @@ export async function apiTeamCreate(name: string) {
 export async function apiTeamJoin(inviteCode: string) {
   return apiPost("/api/team/join", { inviteCode });
 }
+
+export async function apiTeamLeave() {
+  return apiPost("/api/team/leave", {});
+}

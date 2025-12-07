@@ -5,4 +5,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface TeamRepository extends JpaRepository<TeamEntity, Long> {
     Optional<TeamEntity> findByInviteCode(String inviteCode);
+    boolean existsByInviteCode(String code);
 }

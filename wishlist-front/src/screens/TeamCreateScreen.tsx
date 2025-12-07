@@ -3,6 +3,7 @@ import { View, Text, TextInput, Button, Alert } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/types";
 import { apiTeamCreate } from "../api/team";
+import { ApiError } from "../api/api";
 
 type Props = NativeStackScreenProps<RootStackParamList, "TeamCreate">;
 
@@ -17,16 +18,28 @@ export default function TeamCreateScreen({ navigation }: Props) {
 
     try {
       const res = await apiTeamCreate(name.trim());
-      Alert.alert(
-        "Team erstellt",
-        `Invite Code: ${res.inviteCode}`,
-        [{ text: "OK", onPress: () => navigation.navigate("Team") }]
-      );
-    } catch (e) {
-      console.log(e);
-      Alert.alert("Fehler", "Team konnte nicht erstellt werden.");
+
+      Alert.alert("Team erstellt", `Invite Code: ${res.inviteCode}`, [
+        { text: "OK", onPress: () => navigation.navigate("Team") },
+      ]);
+
+    } catch (err: any) {
+      console.log("Create error:", err);
+
+      if (err instanceof ApiError) {
+        if (err.status === 409) {
+          Alert.alert("Fehler", "Du bist bereits in einem Team.");
+          return;
+        }
+
+        Alert.alert("Fehler", err.message || "Team konnte nicht erstellt werden.");
+        return;
+      }
+
+      Alert.alert("Fehler", "Server ist nicht erreichbar.");
     }
   }
+
 
   return (
     <View style={{ padding: 20 }}>

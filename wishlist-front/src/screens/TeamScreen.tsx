@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, Button, FlatList } from "react-native";
+import { View, Text, Button, FlatList, Alert } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/types";
-import { apiTeamMe } from "../api/team";
+import { apiTeamLeave, apiTeamMe } from "../api/team";
 import { useIsFocused } from "@react-navigation/native";
+import { ApiError } from "../api/api";
 
 
 type Props = NativeStackScreenProps<RootStackParamList, "Team">;
@@ -29,8 +30,39 @@ export default function TeamScreen({ navigation }: Props) {
   const [team, setTeam] = useState<TeamMeResponse | null>(null);
   const isFocused = useIsFocused();
 
-  useEffect(() => {
 
+  async function onLeave() {
+  try {
+    await apiTeamLeave();
+
+    Alert.alert("Team verlassen", "Du hast das Team verlassen.", [
+      { text: "OK", onPress: () => navigation.navigate("Home") }
+    ]);
+
+  } catch (err: any) {
+    console.log("Leave error:", err);
+
+    if (err instanceof ApiError) {
+
+      if (err.status === 409) {
+        Alert.alert("Fehler", "Als Owner kannst du das Team nicht verlassen.");
+        return;
+      }
+
+      if (err.status === 400) {
+        Alert.alert("Fehler", "Du bist in keinem Team.");
+        return;
+      }
+
+      Alert.alert("Fehler", err.message || "Team konnte nicht verlassen werden.");
+      return;
+    }
+
+    Alert.alert("Fehler", "Keine Verbindung zum Server.");
+  }
+  }
+
+  useEffect(() => {
     async function load() {
       const res = await apiTeamMe();
       if ("hasTeam" in res) {
@@ -54,8 +86,8 @@ export default function TeamScreen({ navigation }: Props) {
     return (
       <View style={{ padding: 20 }}>
         <Text>Du bist noch in keinem Team.</Text>
-        <Button title="Team erstellen" onPress={() => navigation.navigate("TeamCreate")} />
-        <Button title="Team beitreten" onPress={() => navigation.navigate("TeamJoin")} />
+        {/* <Button title="Team erstellen" onPress={() => navigation.navigate("TeamCreate")} />
+        <Button title="Team beitreten" onPress={() => navigation.navigate("TeamJoin")} /> */}
       </View>
     );
   }
@@ -75,6 +107,16 @@ export default function TeamScreen({ navigation }: Props) {
           </Text>
         )}
       />
+
+      <View style={{ marginTop: 20 }}>
+        <Button
+          title="Team verlassen"
+          color="red"
+          onPress={onLeave}
+        />
+      </View>
+
+
     </View>
   );
 }
