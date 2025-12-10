@@ -2,20 +2,35 @@ import React, { useState, useCallback, useEffect } from "react";
 import {
   View,
   Text,
+  TextInput,
   Button,
   Image,
-  TextInput,
   TouchableOpacity,
   FlatList,
+  Alert,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/types";
-import { loadWishlist, deleteWishlistItem, WishlistItem, Priority } from "../store/wishlistStore";
-import { apiTeamMe } from "../api/team";
+
+import {
+  apiWishlistMy,
+  apiWishlistDelete,
+} from "../api/wishlist";
+
+import { apiTeamList } from "../api/team";
 import { apiMatchingConfig } from "../api/matching";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Wishlist">;
+
+type WishlistItem = {
+  id: number;
+  title: string;
+  description: string | null;
+  price: number | null;
+  priority: "red" | "blue" | "green" | "none";
+  imageUrl: string | null;
+};
 
 export default function WishlistScreen({ navigation }: Props) {
   const [items, setItems] = useState<WishlistItem[]>([]);
@@ -24,55 +39,58 @@ export default function WishlistScreen({ navigation }: Props) {
     "priority" | "alphaAsc" | "alphaDesc" | "priceAsc" | "priceDesc" | "none"
   >("priority");
 
-  const [hasTeam, setHasTeam] = useState(false);
   const [teamId, setTeamId] = useState<number | null>(null);
   const [matchingExecuted, setMatchingExecuted] = useState(false);
 
-  const reload = useCallback(async () => {
+  // ----------------------------
+  // Wishlist laden (Backend)
+  // ----------------------------
+  const loadWishlist = useCallback(async () => {
     try {
-      const data = await loadWishlist();
+      const data = await apiWishlistMy();
       setItems(data);
     } catch (e) {
-      console.log("Error loading wishlist", e);
+      console.log("Wishlist load error:", e);
     }
   }, []);
-
-  useEffect(() => {
-    reload();
-  }, [reload]);
 
   useFocusEffect(
     useCallback(() => {
-      reload();
-    }, [reload])
+      loadWishlist();
+    }, [loadWishlist])
   );
 
-  // Team + Matching Status laden
   useEffect(() => {
-    async function loadTeamAndMatching() {
-      try {
-        const teamRes = await apiTeamMe();
-        if ("hasTeam" in teamRes && !teamRes.hasTeam) {
-          setHasTeam(false);
-          setTeamId(null);
-          setMatchingExecuted(false);
-          return;
-        }
-
-        const team = "hasTeam" in teamRes ? teamRes : { hasTeam: true, ...teamRes };
-        setHasTeam(true);
-        setTeamId(team.teamId);
-
-        const cfg = await apiMatchingConfig();
-        setMatchingExecuted(!!cfg.executed);
-      } catch (e) {
-        console.log("Error loading team/matching", e);
-      }
-    }
-    loadTeamAndMatching();
+    loadWishlist();
   }, []);
 
-  const getPriorityColor = (p: Priority) => {
+  // ----------------------------
+  // Team + Matching Status laden
+  // ----------------------------
+  useEffect(() => {
+    async function loadTeam() {
+      const team = await apiTeamList();
+      const active = team.activeTeamId;
+
+      if (!active) {
+        setTeamId(null);
+        setMatchingExecuted(false);
+        return;
+      }
+
+      setTeamId(active);
+
+      const cfg = await apiMatchingConfig();
+      setMatchingExecuted(!!cfg.executed);
+    }
+
+    loadTeam();
+  }, []);
+
+  // ----------------------------
+  // Helper Farben
+  // ----------------------------
+  const getPriorityColor = (p: string) => {
     switch (p) {
       case "red":
         return "#ff4d4f";
@@ -81,39 +99,34 @@ export default function WishlistScreen({ navigation }: Props) {
       case "green":
         return "#52c41a";
       default:
-        return "#d9d9d9";
+        return "#cccccc";
     }
   };
 
-  let visibleItems = [...items];
+  // ----------------------------
+  // Filtern + Sortieren
+  // ----------------------------
+  let visible = [...items];
 
   if (search.trim() !== "") {
-    visibleItems = visibleItems.filter((item) =>
-      item.title.toLowerCase().includes(search.toLowerCase())
+    visible = visible.filter((x) =>
+      x.title.toLowerCase().includes(search.toLowerCase())
     );
   }
 
   if (sortMode === "priority") {
     const order = { red: 1, blue: 2, green: 3, none: 4 };
-    visibleItems.sort((a, b) => order[a.priority] - order[b.priority]);
+    visible.sort((a, b) => order[a.priority] - order[b.priority]);
   }
 
-  if (sortMode === "alphaAsc") {
-    visibleItems.sort((a, b) => a.title.localeCompare(b.title));
-  }
+  if (sortMode === "alphaAsc") visible.sort((a, b) => a.title.localeCompare(b.title));
+  if (sortMode === "alphaDesc") visible.sort((a, b) => b.title.localeCompare(a.title));
+  if (sortMode === "priceAsc") visible.sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
+  if (sortMode === "priceDesc") visible.sort((a, b) => (b.price ?? 0) - (a.price ?? 0));
 
-  if (sortMode === "alphaDesc") {
-    visibleItems.sort((a, b) => b.title.localeCompare(a.title));
-  }
-
-  if (sortMode === "priceAsc") {
-    visibleItems.sort((a, b) => a.price - b.price);
-  }
-
-  if (sortMode === "priceDesc") {
-    visibleItems.sort((a, b) => b.price - a.price);
-  }
-
+  // ----------------------------
+  // UI
+  // ----------------------------
   return (
     <View style={{ flex: 1, padding: 20 }}>
       <TextInput
@@ -123,47 +136,37 @@ export default function WishlistScreen({ navigation }: Props) {
         style={{
           borderWidth: 1,
           borderColor: "#ccc",
-          padding: 8,
-          marginBottom: 10,
+          padding: 10,
+          borderRadius: 8,
+          marginBottom: 15,
         }}
       />
 
-      <View style={{ flexDirection: "row", flexWrap: "wrap", marginBottom: 10 }}>
-        <View style={{ marginRight: 8, marginBottom: 8 }}>
-          <Button title="Priority" onPress={() => setSortMode("priority")} />
-        </View>
-
-        <View style={{ marginRight: 8, marginBottom: 8 }}>
-          <Button
-            title="A–Z ↕"
-            onPress={() => {
-              if (sortMode === "alphaAsc") setSortMode("alphaDesc");
-              else if (sortMode === "alphaDesc") setSortMode("none");
-              else setSortMode("alphaAsc");
-            }}
-          />
-        </View>
-
-        <View style={{ marginRight: 8, marginBottom: 8 }}>
-          <Button
-            title="Price ↕"
-            onPress={() => {
-              if (sortMode === "priceAsc") setSortMode("priceDesc");
-              else if (sortMode === "priceDesc") setSortMode("none");
-              else setSortMode("priceAsc");
-            }}
-          />
-        </View>
-
-        <View style={{ marginRight: 8, marginBottom: 8 }}>
-          <Button title="None" onPress={() => setSortMode("none")} />
-        </View>
+      {/* Sortierung */}
+      <View style={{ flexDirection: "row", flexWrap: "wrap", marginBottom: 15 }}>
+        <Button title="Priority" onPress={() => setSortMode("priority")} />
+        <View style={{ width: 10 }} />
+        <Button
+          title="A–Z"
+          onPress={() =>
+            setSortMode(sortMode === "alphaAsc" ? "alphaDesc" : "alphaAsc")
+          }
+        />
+        <View style={{ width: 10 }} />
+        <Button
+          title="Price"
+          onPress={() =>
+            setSortMode(sortMode === "priceAsc" ? "priceDesc" : "priceAsc")
+          }
+        />
+        <View style={{ width: 10 }} />
+        <Button title="None" onPress={() => setSortMode("none")} />
       </View>
 
-      <Button title="Add Item" onPress={() => navigation.navigate("AddItem")} />
+      <Button title="➕ Add Item" onPress={() => navigation.navigate("AddItem")} />
 
-      {/* Partner-Button */}
-      {hasTeam && matchingExecuted && (
+      {/* 🎅 Matching Button */}
+      {teamId && matchingExecuted && (
         <View style={{ marginTop: 20 }}>
           <Button
             title="🎅 Meinen Partner anzeigen"
@@ -172,43 +175,49 @@ export default function WishlistScreen({ navigation }: Props) {
         </View>
       )}
 
+      {/* Wishlist Items */}
       <FlatList
         style={{ marginTop: 10 }}
-        data={visibleItems}
-        keyExtractor={(x) => String(x.id)}
+        data={visible}
+        keyExtractor={(x) => x.id.toString()}
         renderItem={({ item }) => (
           <TouchableOpacity
-            onPress={() => navigation.navigate("EditItem", { id: String(item.id) })}
+            onPress={() => navigation.navigate("EditItem", { id: item.id })}
             style={{
               padding: 15,
-              marginVertical: 10,
-              backgroundColor: "#fdfdfd",
+              marginBottom: 15,
+              backgroundColor: "#fff",
               borderRadius: 10,
               borderWidth: 3,
               borderColor: getPriorityColor(item.priority),
             }}
           >
-            {item.imageUri && (
+            {item.imageUrl && (
               <Image
-                source={{ uri: item.imageUri }}
+                source={{ uri: item.imageUrl }}
                 style={{
-                  width: 80,
-                  height: 80,
+                  width: 100,
+                  height: 100,
                   borderRadius: 8,
                   marginBottom: 10,
                 }}
               />
             )}
 
-            <Text style={{ fontSize: 20 }}>{item.title}</Text>
-            <Text>{item.description}</Text>
-            <Text style={{ fontWeight: "bold" }}>{item.price} EUR</Text>
+            <Text style={{ fontSize: 20, fontWeight: "600" }}>{item.title}</Text>
+            {item.description && <Text>{item.description}</Text>}
+            {item.price && (
+              <Text style={{ marginTop: 5, fontWeight: "bold" }}>
+                💶 {item.price.toFixed(2)} €
+              </Text>
+            )}
 
             <Button
               title="Delete"
+              color="red"
               onPress={async () => {
-                await deleteWishlistItem(String(item.id));
-                await reload();
+                await apiWishlistDelete(item.id);
+                await loadWishlist();
               }}
             />
           </TouchableOpacity>

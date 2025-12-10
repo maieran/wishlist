@@ -5,4 +5,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface MatchingRepository extends JpaRepository<MatchingEntity, Long> {
+    MatchingEntity findTopByOrderByCreatedAtDesc();
 }

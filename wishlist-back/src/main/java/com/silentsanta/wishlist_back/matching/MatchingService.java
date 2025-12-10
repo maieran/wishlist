@@ -1,21 +1,21 @@
 package com.silentsanta.wishlist_back.matching;
 
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-
-import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Service;
-
 import com.silentsanta.wishlist_back.team.TeamEntity;
 import com.silentsanta.wishlist_back.team.TeamMemberEntity;
 import com.silentsanta.wishlist_back.team.TeamMemberRepository;
 import com.silentsanta.wishlist_back.team.TeamRepository;
 import com.silentsanta.wishlist_back.user.UserEntity;
+import com.silentsanta.wishlist_back.user.UserService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Service;
+
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -27,13 +27,23 @@ public class MatchingService {
     private final MatchAssignmentRepository matchAssignmentRepository;
     private final MatchingAlgorithm matchingAlgorithm;
     private final MatchingConfigRepository matchingConfigRepository;
+    private final UserService userService;
 
+    // ────────── Matching für EIN Team erzeugen ──────────
     @Transactional
     public void createMatchingForTeam(Long teamId) {
 
         List<TeamMemberEntity> members = teamMemberRepository.findByTeamId(teamId);
 
-        if (members.size() < 2) return; // zu wenige Leute
+        // Zu wenige Leute → kein Matching
+        if (members.size() < 2) return;
+
+        // ALTE Zuordnungen für dieses Team löschen
+        List<MatchAssignmentEntity> oldAssignments =
+                matchAssignmentRepository.findByMatching_Team_Id(teamId);
+        if (!oldAssignments.isEmpty()) {
+            matchAssignmentRepository.deleteAll(oldAssignments);
+        }
 
         List<Long> userIds = members.stream()
                 .map(m -> m.getUser().getId())
@@ -50,21 +60,20 @@ public class MatchingService {
             MatchAssignmentEntity assignment = new MatchAssignmentEntity();
             assignment.setMatching(matching);
 
-            UserEntity giver = new UserEntity();
-            giver.setId(giverId);
-            assignment.setGiver(giver);
+            UserEntity giver = userService.getById(giverId);
+            UserEntity receiver = userService.getById(receiverId);
 
-            UserEntity receiver = new UserEntity();
-            receiver.setId(receiverId);
+            assignment.setGiver(giver);
             assignment.setReceiver(receiver);
 
             matchAssignmentRepository.save(assignment);
         });
     }
 
+    // ────────── Partner eines Users in einem Team ──────────
     public Optional<UserEntity> findMyPartner(Long teamId, Long userId) {
         return matchAssignmentRepository
-                .findByMatchingTeamIdAndGiverId(teamId, userId)
+                .findByMatching_Team_IdAndGiver_Id(teamId, userId)
                 .map(MatchAssignmentEntity::getReceiver);
     }
 
@@ -76,11 +85,14 @@ public class MatchingService {
         MatchingConfig cfg = matchingConfigRepository.findById(1L).orElse(null);
         if (cfg == null) return;
         if (cfg.getMatchDate() == null) return;
-        if (cfg.isExecuted()) return;
 
-        if (LocalDateTime.now().isAfter(cfg.getMatchDate())) {
-            runSilentSantaMatching();
+        // Noch nicht Zeit? → Abbruch
+        if (LocalDateTime.now().isBefore(cfg.getMatchDate())) {
+            return;
         }
+
+        // Zeitpunkt erreicht → Matching ausführen
+        runSilentSantaMatching();
     }
 
     // ────────── MATCHING AUSFÜHREN ──────────
@@ -94,16 +106,25 @@ public class MatchingService {
                     return c;
                 });
 
-        if (cfg.isExecuted()) return; // schon gelaufen
+        boolean anyExecuted = false;
 
         List<TeamEntity> teams = teamRepository.findAll();
         for (TeamEntity team : teams) {
-            createMatchingForTeam(team.getId());
+            List<TeamMemberEntity> members = teamMemberRepository.findByTeamId(team.getId());
+            if (members.size() >= 2) {
+                createMatchingForTeam(team.getId());
+                anyExecuted = true;
+            }
         }
 
-        cfg.setExecuted(true);
-        matchingConfigRepository.save(cfg);
+        if (anyExecuted) {
+            cfg.setDirty(false);
+            cfg.setExecuted(true);
+            cfg.setLastRunAt(LocalDateTime.now());
+            matchingConfigRepository.save(cfg);
+        }
     }
+
 
     // ────────── MANUELLER START durch Admin ──────────
     @Transactional
@@ -111,12 +132,14 @@ public class MatchingService {
 
         MatchingConfig cfg = matchingConfigRepository.findById(1L)
                 .orElseGet(() -> {
-                    MatchingConfig c = new MatchingConfig();
-                    c.setId(1L);
-                    return c;
+                    MatchingConfig config = new MatchingConfig();
+                    config.setId(1L);
+                    return config;
                 });
 
-        cfg.setExecuted(false); // erzwinge neues Matching
+        // Manuell erzwingt neues Matching
+        cfg.setExecuted(false);
+        cfg.setDirty(false);
         matchingConfigRepository.save(cfg);
 
         runSilentSantaMatching();

@@ -46,6 +46,7 @@ public class UserService {
                 .orElseThrow(() -> new RuntimeException("User not found"));
     }
 
+
     // Wird von MatchingService, TeamService, WishlistService benutzt
     public UserEntity getAuthenticatedUser() {
         Object principal = SecurityContextHolder
@@ -60,4 +61,18 @@ public class UserService {
 
         throw new RuntimeException("No authenticated user");
     }
+
+    public void setActiveTeam(Long teamId) {
+        UserEntity me = getAuthenticatedUser();
+        me.setActiveTeamId(teamId);
+        userRepository.save(me);
+    }
+
+    public void save(UserEntity user) {
+        if (user == null || user.getUsername().isEmpty()) {
+            throw new RuntimeException("Invalid user");
+        }
+        userRepository.save(user);
+    }
+
 }

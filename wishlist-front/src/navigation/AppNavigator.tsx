@@ -21,6 +21,7 @@ import AdminCreateUserScreen from "../screens/AdminCreateUserScreen";
 import AdminEditUserScreen from "../screens/AdminEditUserScreen";
 import MatchingDateScreen from "../screens/MatchingDateScreen";
 import AdminDashboardScreen from "../screens/AdminDashboardScreen";
+import TeamListScreen from "../screens/TeamListScreen";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -40,6 +41,7 @@ export default function AppNavigator() {
         <Stack.Screen name="EditItem" component={EditItemScreen} />
         <Stack.Screen name="Team" component={TeamScreen} />
         <Stack.Screen name="TeamCreate" component={TeamCreateScreen} />
+        <Stack.Screen name="TeamList" component={TeamListScreen} />
         <Stack.Screen name="TeamJoin" component={TeamJoinScreen} />
         <Stack.Screen name="MatchingProgress" component={MatchingInProgressScreen} />
         <Stack.Screen name="MyPartner" component={MyPartnerScreen} />

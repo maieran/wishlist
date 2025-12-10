@@ -8,6 +8,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.Map;
 
 @RestController
@@ -17,10 +18,17 @@ public class MatchingController {
 
     private final MatchingService matchingService;
     private final MatchingConfigRepository matchingConfigRepository;
+    private final MatchingRepository matchingRepository;
     private final UserService userService;
 
     public record MatchingConfigResponse(LocalDateTime matchDate, boolean executed) {}
     public record MatchingConfigRequest(LocalDateTime matchDate) {}
+    public record MatchingStatusDto(
+            LocalDateTime matchDate,
+            boolean executed,
+            LocalDateTime lastRunAt,
+            boolean hasPartner
+    ) {}
 
     // GET Config
     @GetMapping("/config")
@@ -49,6 +57,7 @@ public class MatchingController {
 
         cfg.setMatchDate(req.matchDate());
         cfg.setExecuted(false); // Reset
+        cfg.setDirty(true);
         matchingConfigRepository.save(cfg);
 
         return ResponseEntity.ok().build();
@@ -75,6 +84,7 @@ public class MatchingController {
 
         cfg.setMatchDate(null);
         cfg.setExecuted(false);
+        cfg.setDirty(true);
         matchingConfigRepository.save(cfg);
 
         return ResponseEntity.ok(Map.of("status", "cleared"));
@@ -99,5 +109,37 @@ public class MatchingController {
                                 "message", "Kein Partner gefunden"
                         )
                 ));
+    }
+
+    // 🔥 NEU: Matching-Status für Polling
+    @GetMapping("/status")
+    public ResponseEntity<MatchingStatusDto> status() {
+        UserEntity me = userService.getAuthenticatedUser();
+
+        MatchingConfig cfg = matchingConfigRepository.findById(1L).orElse(null);
+        LocalDateTime matchDate = (cfg != null ? cfg.getMatchDate() : null);
+        boolean executed = (cfg != null && cfg.isExecuted());
+
+        MatchingEntity last = matchingRepository.findTopByOrderByCreatedAtDesc();
+        LocalDateTime lastRunAt = null;
+        if (last != null && last.getCreatedAt() != null) {
+            lastRunAt = LocalDateTime.ofInstant(last.getCreatedAt(), ZoneOffset.UTC);
+        }
+
+        boolean hasPartner = false;
+        if (me.getActiveTeamId() != null) {
+            hasPartner = matchingService
+                    .findMyPartner(me.getActiveTeamId(), me.getId())
+                    .isPresent();
+        }
+
+        MatchingStatusDto dto = new MatchingStatusDto(
+                matchDate,
+                executed,
+                lastRunAt,
+                hasPartner
+        );
+
+        return ResponseEntity.ok(dto);
     }
 }

@@ -1,11 +1,25 @@
-import React, { useEffect, useState } from "react";
-import { View, Text, TextInput, Button, Alert } from "react-native";
+import React, {
+  useEffect,
+  useState,
+  useContext,
+} from "react";
+import {
+  View,
+  Text,
+  Button,
+  Alert,
+  Platform,
+} from "react-native";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/types";
-import { fetchMatchingDate, adminSetMatchingDate, adminClearMatchingDate } from "../api/settings";
+import {
+  fetchMatchingDate,
+  adminSetMatchingDate,
+  adminClearMatchingDate,
+} from "../api/settings";
 import { apiGet } from "../api/api";
-import DateTimePicker from "@react-native-community/datetimepicker";
-
+import { MatchingStatusContext } from "../context/MatchingStatusContext";
 
 type Props = NativeStackScreenProps<RootStackParamList, "MatchingDate">;
 
@@ -15,17 +29,16 @@ type MeResponse = {
   admin: boolean;
 };
 
-
-
 export default function MatchingDateScreen({ navigation }: Props) {
   const [isAdmin, setIsAdmin] = useState(false);
   const [matchingIso, setMatchingIso] = useState<string | null>(null);
-  const [inputValue, setInputValue] = useState("");
-  const [countdown, setCountdown] = useState<string>("");
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [showPicker, setShowPicker] = useState(false);
+  const [countdown, setCountdown] = useState("");
 
+  const { scheduledDate, executed } = useContext(MatchingStatusContext);
 
-  // 1) /api/auth/me → Admin flag holen
+  // -------- ADMIN FLAG LADEN --------
   useEffect(() => {
     async function loadMe() {
       try {
@@ -38,16 +51,17 @@ export default function MatchingDateScreen({ navigation }: Props) {
     loadMe();
   }, []);
 
-  // 2) Matching Datum laden
+  // -------- MATCHING DATE LADEN (initial über /api/settings) --------
   useEffect(() => {
     async function loadDate() {
       try {
         const res = await fetchMatchingDate();
         if (res.dateTime) {
           setMatchingIso(res.dateTime);
-          setInputValue(res.dateTime); // für Admin-Input
+          setSelectedDate(new Date(res.dateTime));
         } else {
           setMatchingIso(null);
+          setSelectedDate(null);
         }
       } catch (e) {
         console.log("Error loading matching date", e);
@@ -56,7 +70,17 @@ export default function MatchingDateScreen({ navigation }: Props) {
     loadDate();
   }, []);
 
-  // 3) Countdown
+  // -------- OPTIONAL: Context-Daten spiegeln --------
+  useEffect(() => {
+    if (scheduledDate) {
+      setMatchingIso(scheduledDate);
+      if (!selectedDate) {
+        setSelectedDate(new Date(scheduledDate));
+      }
+    }
+  }, [scheduledDate]);
+
+  // -------- COUNTDOWN --------
   useEffect(() => {
     if (!matchingIso) {
       setCountdown("");
@@ -70,52 +94,49 @@ export default function MatchingDateScreen({ navigation }: Props) {
       const diff = target - now;
 
       if (diff <= 0) {
-        setCountdown("Matching läuft oder wurde bereits ausgeführt 🎅");
+        setCountdown("🎅 Matching läuft oder wurde bereits ausgeführt!");
         return;
       }
 
-      const totalSeconds = Math.floor(diff / 1000);
-      const days = Math.floor(totalSeconds / (24 * 3600));
-      const hours = Math.floor((totalSeconds % (24 * 3600)) / 3600);
-      const minutes = Math.floor((totalSeconds % 3600) / 60);
-      const seconds = totalSeconds % 60;
+      const sec = Math.floor(diff / 1000);
+      const days = Math.floor(sec / 86400);
+      const hours = Math.floor((sec % 86400) / 3600);
+      const minutes = Math.floor((sec % 3600) / 60);
+      const seconds = sec % 60;
 
       setCountdown(
-        `${pad(days)} Tage ${pad(hours)} Stunden ${pad(minutes)} Minuten ${pad(
-          seconds
-        )} Sekunden`
+        `${days} Tage ${hours} Std ${minutes} Min ${seconds} Sek`
       );
     }, 1000);
 
     return () => clearInterval(id);
   }, [matchingIso]);
 
-  function pad(n: number) {
-    return n.toString().padStart(2, "0");
-  }
-
+  // ---------- ADMIN: DATUM SPEICHERN ----------
   async function onSave() {
     try {
-      if (!inputValue) {
+      if (!selectedDate) {
         Alert.alert("Fehler", "Bitte ein Datum auswählen.");
         return;
       }
 
-      await adminSetMatchingDate(inputValue);
-      setMatchingIso(inputValue);
+      const iso = selectedDate.toISOString();
+      await adminSetMatchingDate(iso);
+      setMatchingIso(iso);
 
       Alert.alert("Gespeichert", "Matching-Datum wurde gesetzt.");
     } catch (e) {
+      console.log(e);
       Alert.alert("Fehler", "Konnte Matching-Datum nicht speichern.");
     }
   }
 
-
+  // ---------- ADMIN: DATUM LÖSCHEN ----------
   async function onClear() {
     try {
       await adminClearMatchingDate();
       setMatchingIso(null);
-      setInputValue("");
+      setSelectedDate(null);
       Alert.alert("Ok", "Matching-Datum gelöscht.");
     } catch (e) {
       console.log(e);
@@ -123,13 +144,17 @@ export default function MatchingDateScreen({ navigation }: Props) {
     }
   }
 
+  // ---------- UI ----------
   return (
-    <View style={{ flex: 1, padding: 20, justifyContent: "flex-start" }}>
-      <Text style={{ fontSize: 22, marginBottom: 10 }}>Silent Santa Datum</Text>
+    <View style={{ flex: 1, padding: 20 }}>
+      <Text style={{ fontSize: 26, marginBottom: 20 }}>
+        Silent Santa Datum 🎅
+      </Text>
 
       {matchingIso ? (
         <Text style={{ marginBottom: 10 }}>
-          Geplantes Matching:{"\n"}
+          Geplantes Matching:
+          {"\n"}
           <Text style={{ fontWeight: "bold" }}>{matchingIso}</Text>
         </Text>
       ) : (
@@ -138,47 +163,62 @@ export default function MatchingDateScreen({ navigation }: Props) {
         </Text>
       )}
 
+      {/* Zusatzinfo aus Context */}
+      {executed && (
+        <Text style={{ color: "green", marginBottom: 10 }}>
+          🎅 Matching wurde bereits mindestens einmal ausgeführt.
+        </Text>
+      )}
+
       {countdown !== "" && (
-        <Text style={{ marginBottom: 20 }}>
-          Bis zum Matching verbleiben:{"\n"}
+        <Text style={{ marginBottom: 20, fontSize: 18 }}>
+          Countdown:
+          {"\n"}
           <Text style={{ fontWeight: "bold" }}>{countdown}</Text>
         </Text>
       )}
 
-      {!matchingIso && countdown === "" && (
-        <Text style={{ marginBottom: 20 }}>
-          Sobald ein Admin ein Datum setzt, erscheint hier ein Countdown 🎄
-        </Text>
-      )}
-
-      {/* Admin-Bereich */}
+      {/* ----------- ADMIN BEREICH ----------- */}
       {isAdmin && (
-        <View style={{ marginTop: 30 }}>
-          <Text style={{ fontSize: 18, marginBottom: 6 }}>Admin – Datum setzen</Text>
-          <Text style={{ marginBottom: 6 }}>
-            Datum für Silent Santa auswählen:
+        <>
+          <Text style={{ fontSize: 20, marginBottom: 10, marginTop: 20 }}>
+            Admin – Datum auswählen
           </Text>
+
+          {selectedDate && (
+            <Text style={{ marginBottom: 10 }}>
+              Ausgewählt:
+              {"\n"}
+              <Text style={{ fontWeight: "bold" }}>
+                {selectedDate.toISOString()}
+              </Text>
+            </Text>
+          )}
+
+          <Button title="Datum wählen" onPress={() => setShowPicker(true)} />
 
           {showPicker && (
             <DateTimePicker
-              value={matchingIso ? new Date(matchingIso) : new Date()}
+              value={selectedDate || new Date()}
               mode="datetime"
-              display="default"
-              onChange={(event, selectedDate) => {
-                setShowPicker(false);
-                if (selectedDate) {
-                  const iso = selectedDate.toISOString();
-                  setInputValue(iso);     // ersetzt ISO TextInput
+              display={Platform.OS === "ios" ? "inline" : "default"}
+              onChange={(event, date) => {
+                if (event.type === "dismissed") {
+                  setShowPicker(false);
+                  return;
                 }
+                setShowPicker(false);
+                if (date) setSelectedDate(date);
               }}
             />
           )}
 
+          <View style={{ height: 20 }} />
 
           <Button title="Matching-Datum speichern" onPress={onSave} />
           <View style={{ height: 10 }} />
-          <Button title="Matching-Datum löschen" color="red" onPress={onClear} />
-        </View>
+          <Button title="Datum löschen" color="red" onPress={onClear} />
+        </>
       )}
     </View>
   );

@@ -3,6 +3,7 @@ import { View, Text, Button } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/types";
 import { apiGet } from "../api/api";
+import { logoutUser } from "../api/auth";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Home">;
 
@@ -10,17 +11,19 @@ type MeResponse = {
   userId: number;
   displayName: string;
   admin: boolean;
-  teamId: number;
 };
 
 export default function HomeScreen({ navigation }: Props) {
   const [isAdmin, setIsAdmin] = useState(false);
-  const [teamId, setTeamId] = useState<number | null>(null);
 
   useEffect(() => {
     async function load() {
-      const me: MeResponse = await apiGet("/api/auth/me");
-      setIsAdmin(me.admin);
+      try {
+        const me: MeResponse = await apiGet("/api/auth/me");
+        setIsAdmin(!!me.admin);
+      } catch (e) {
+        console.log("Error loading /api/auth/me", e);
+      }
     }
     load();
   }, []);
@@ -28,37 +31,37 @@ export default function HomeScreen({ navigation }: Props) {
   return (
     <View style={{ padding: 20 }}>
       <Text style={{ fontSize: 24, marginBottom: 20 }}>Silent Santa 🎅</Text>
-      
-      {/* <Button 
-        title="Silent Santa Matching" 
-        onPress={() => navigation.navigate("MatchingProgress")} 
-      /> */}
-      
 
-      <Button 
-        title="Meine Wishlist" 
-        onPress={() => navigation.navigate("Wishlist")} 
-      />
-
+      <Button title="Meine Wishlist" onPress={() => navigation.navigate("Wishlist")} />
       <View style={{ height: 10 }} />
 
-      <Button 
-        title="Mein Team"
-        onPress={() => navigation.navigate("Team")}
-      />
+      <Button title="Meine Teams" onPress={() => navigation.navigate("TeamList")} />
+      <View style={{ height: 10 }} />
 
       {isAdmin && (
         <>
           <View style={{ height: 30 }} />
-          <Text style={{ fontSize: 20 }}>Admin Area</Text>
-
+          <Text style={{ fontSize: 20 }}>Admin Bereich</Text>
           <Button
             title="Admin Dashboard"
             onPress={() => navigation.navigate("AdminDashboard")}
           />
         </>
       )}
+
+      <View style={{ height: 40 }} />
+
+      <Button
+        title="Logout"
+        color="red"
+        onPress={async () => {
+          await logoutUser();
+          navigation.reset({
+            index: 0,
+            routes: [{ name: "Login" }],
+          });
+        }}
+      />
     </View>
   );
 }
-

@@ -15,6 +15,7 @@ public class MatchAssignmentEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // Welche Matching-Runde
     @ManyToOne
     private MatchingEntity matching;
 
@@ -25,5 +26,4 @@ public class MatchAssignmentEntity {
     @ManyToOne
     @JoinColumn(name = "receiver_id")
     private UserEntity receiver;
-
 }

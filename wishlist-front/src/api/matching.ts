@@ -11,3 +11,8 @@ export async function apiAdminRunMatching() {
 export async function apiMyPartner(teamId: number) {
   return apiGet(`/api/matching/me?teamId=${teamId}`);
 }
+
+// 🔥 Neu: Matching-Status für Context
+export async function apiMatchingStatus() {
+  return apiGet("/api/matching/status");
+}

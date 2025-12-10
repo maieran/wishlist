@@ -30,5 +30,9 @@ public class UserEntity {
 
     @Column(nullable = false)
     private boolean admin; // Du & deine Frau = admin
+
+    @Column(name = "active_team_id")
+    private Long activeTeamId;
+
 }
 

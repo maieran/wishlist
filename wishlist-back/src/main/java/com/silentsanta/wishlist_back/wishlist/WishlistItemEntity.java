@@ -27,7 +27,8 @@ public class WishlistItemEntity {
 
     private Double price;
 
-    private String imageUrl;   // z.B. später Cloud-URL, jetzt String
+    @Column(columnDefinition = "TEXT")
+    private String imageUrl; // z.B. später Cloud-URL, jetzt String
 
     @Column(nullable = false)
     private String priority;   // "red", "blue", "green", "none"

@@ -1,24 +1,32 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, Button, Image, Alert } from "react-native";
-import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import {
+  View,
+  Text,
+  TextInput,
+  Button,
+  Image,
+  Alert,
+} from "react-native";
 import * as ImagePicker from "expo-image-picker";
-import { addWishlistItem } from "../store/wishlistStore";
+import { apiWishlistCreate } from "../api/wishlist";
+import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/types";
 
 type Props = NativeStackScreenProps<RootStackParamList, "AddItem">;
 
 export default function AddItemScreen({ navigation }: Props) {
   const [title, setTitle] = useState("");
-  const [desc, setDescription] = useState("");
+  const [desc, setDesc] = useState("");
   const [price, setPrice] = useState("");
-  const [priority, setPriority] = useState<"red" | "blue" | "green" | "none">("none");
+  const [priority, setPriority] = useState<"red" | "blue" | "green" | "none">(
+    "none"
+  );
   const [imageUri, setImageUri] = useState<string | null>(null);
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
-      quality: 0.8,
     });
 
     if (!result.canceled) {
@@ -27,57 +35,49 @@ export default function AddItemScreen({ navigation }: Props) {
   };
 
   const save = async () => {
-    if (!title || !desc || !price) {
-      Alert.alert("Missing fields", "Bitte alle Felder ausfüllen.");
+    if (!title || !price) {
+      Alert.alert("Fehler", "Bitte Titel und Preis eingeben.");
       return;
     }
 
-  const newItem = {
-    title,
-    description: desc,
-    price: parseFloat(price),
-    priority,
-    imageUri: imageUri ?? undefined,
-  };
-
-
-    const result = await addWishlistItem(newItem);
-
-    if (!result || !result.id) {
-      Alert.alert("Error", "Item konnte nicht gespeichert werden.");
-      return;
-    }
+    await apiWishlistCreate({
+      title,
+      description: desc,
+      price: parseFloat(price),
+      priority,
+      imageUrl: imageUri ?? null,
+    });
 
     navigation.goBack();
   };
 
   return (
     <View style={{ padding: 20 }}>
-      <Text style={{ fontSize: 22, marginBottom: 10 }}>Add Item</Text>
+      <Text style={{ fontSize: 22, marginBottom: 10 }}>Neues Item</Text>
 
-      <Text>Title</Text>
       <TextInput
-        style={{ borderWidth: 1, padding: 8, marginBottom: 10 }}
+        placeholder="Titel"
         value={title}
         onChangeText={setTitle}
+        style={{ borderWidth: 1, padding: 10, marginBottom: 10 }}
       />
 
-      <Text>Description</Text>
       <TextInput
-        style={{ borderWidth: 1, padding: 8, marginBottom: 10 }}
+        placeholder="Beschreibung"
         value={desc}
-        onChangeText={setDescription}
+        onChangeText={setDesc}
+        style={{ borderWidth: 1, padding: 10, marginBottom: 10 }}
       />
 
-      <Text>Price</Text>
       <TextInput
-        keyboardType="numeric"
-        style={{ borderWidth: 1, padding: 8, marginBottom: 10 }}
+        placeholder="Preis (€)"
         value={price}
         onChangeText={setPrice}
+        keyboardType="numeric"
+        style={{ borderWidth: 1, padding: 10, marginBottom: 10 }}
       />
 
-      <Text>Priority</Text>
+      <Text style={{ marginVertical: 5 }}>Priorität:</Text>
       <View style={{ flexDirection: "row", marginBottom: 10 }}>
         <Button title="Red" onPress={() => setPriority("red")} />
         <Button title="Blue" onPress={() => setPriority("blue")} />
@@ -85,16 +85,20 @@ export default function AddItemScreen({ navigation }: Props) {
         <Button title="None" onPress={() => setPriority("none")} />
       </View>
 
-      <Button title="Pick Image" onPress={pickImage} />
-
+      <Button title="Bild auswählen" onPress={pickImage} />
       {imageUri && (
         <Image
           source={{ uri: imageUri }}
-          style={{ width: 150, height: 150, marginVertical: 10, alignSelf: "center" }}
+          style={{
+            width: 150,
+            height: 150,
+            marginVertical: 10,
+            borderRadius: 10,
+          }}
         />
       )}
 
-      <Button title="Save" onPress={save} />
+      <Button title="Speichern" onPress={save} />
     </View>
   );
 }

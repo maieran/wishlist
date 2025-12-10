@@ -5,12 +5,13 @@ export type RootStackParamList = {
 
   Wishlist: undefined;
   AddItem: undefined;
-  EditItem: { id: string };
+  EditItem: { id: number };
 
   Team: undefined;
   TeamCreate: undefined;
   TeamJoin: undefined;
-
+  TeamList: undefined;
+  
   MatchingProgress: { teamId: number };
   //MatchingProgress: undefined;
   MyPartner: undefined;

@@ -1,6 +1,6 @@
 import * as SecureStore from "expo-secure-store";
 
-export const API_BASE = "http://192.168.178.28:8080";
+export const API_BASE = "http://192.168.0.125:8080";
 
 
 //http://172.18.77.177:8080";
