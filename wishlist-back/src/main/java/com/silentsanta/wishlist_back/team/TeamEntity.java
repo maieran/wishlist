@@ -24,4 +24,15 @@ public class TeamEntity {
 
     @Column(nullable = false, unique = true)
     private String inviteCode;
+
+    @Column(name = "team_avatar_url")
+    private String teamAvatarUrl = "/static/avatars/default-team.png";
+
+
+    public String getTeamAvatarUrl() {
+        return teamAvatarUrl != null && !teamAvatarUrl.isBlank()
+                ? teamAvatarUrl
+                : "/avatars/default-team.png";
+    }
+
 }

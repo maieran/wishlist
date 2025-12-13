@@ -17,7 +17,8 @@ export default function LoginScreen({ navigation }: Props) {
       const data = await apiPost("/api/auth/login", { username, password });
 
       await SecureStore.setItemAsync("token", data.token);
-      navigation.replace("Home");
+      //navigation.replace("Home");
+      navigation.replace("Between");
 
     } catch (err: any) {
       console.log("Login error:", err);

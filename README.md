@@ -1,374 +1,243 @@
-# wishlist
-my small wishlist fullstack application for friends and family so they know stuff &lt;3
-
-
-
-🎅 Silent Santa — Matching System Documentation
-Overview
-
-Silent Santa is a Secret-Santa–style feature that automatically assigns each user in a team a gift partner. The matching can be scheduled by admins or triggered manually. Users can see a countdown until matching begins, and after the algorithm runs, each user can view their assigned partner and their wishlist.
-
-🚀 Features
-User Features
-
-Create and manage your wishlist
-
-View team members
-
-See the scheduled Silent Santa date
-
-View a countdown until matching
-
-Once matching has executed:
-
-See your assigned partner
-
-View your partner’s wishlist
-
-Admin Features
-
-Set or clear the global Silent Santa matching date
-
-Trigger matching manually
-
-Manage users (create/edit/delete)
-
-View team structure (future feature)
-
-🧠 Architecture
-
-Silent Santa consists of the following main components:
-
-Backend
-
-MatchingConfig (stores date + executed flag)
-
-MatchingService (executes the matching algorithm)
-
-MatchingAlgorithm (creates giver → receiver assignments)
-
-MatchAssignmentEntity (database record)
-
-Cron Scheduler runs every 60 seconds
-
-Endpoints:
-
-GET /api/matching/config → date, executed state
-
-POST /api/matching/config → set date (admin)
-
-POST /api/matching/run-manual → force matching (admin)
-
-GET /api/matching/me?teamId=X → returns partner or “not found”
-
-Frontend (React Native)
-
-Screens:
-
-MatchingDateScreen (admin)
-
-MatchingInProgressScreen
-
-WishlistScreen
-
-MyPartnerScreen
-
-MyPartnerWishlistScreen
-
-TeamScreen
-
-AdminDashboard
-
-AdminUsersScreen
-
-🔄 Matching Workflow
-1. Admin sets a matching date
-
-The date is stored in MatchingConfig.
-Users can now see a countdown.
-
-2. Cron job checks periodically
-
-When current time ≥ matchDate
-→ Matching runs
-→ executed = true
-
-3. Users gain access to partner
-
-When executed = true:
-
-WishlistScreen shows:
-
-🎅 Show my partner
-
-
-MyPartnerScreen loads real partner from backend.
-
-4. Admin manual execution
-
-Admins can trigger matching immediately:
-
-POST /api/matching/run-manual
-
-
-Often used during testing.
-
-📦 Database Entities
-MatchingEntity
-
-Stores:
-
-team reference
-
-createdAt timestamp
-
-MatchAssignmentEntity
-
-Stores:
-
-giver user ID
-
-receiver user ID
-
-reference to matching
-
-MatchingConfig
-
-Stores:
-
-global match date
-
-executed flag
-
-🧪 Testing the Matching Process
-Set matching date:
-POST /api/matching/config
-{
-  "matchDate": "2025-12-15T18:00:00Z"
-}
-
-Run manually:
-POST /api/matching/run-manual
-
-Get partner:
-GET /api/matching/me?teamId=1
-
-
-
-Perfekt.
-Hier bekommst du eine **strukturierte, umfassende, klar abhakebare Test-Checkliste**, die du **vor jedem Deployment** verwenden kannst.
-
-Ich gebe dir:
-
-✅ **Markdown-Datei (komplett kopierbar für GitHub / Notion / Confluence)**
-✅ **Mit Kästchen zum Abhaken**
-✅ **Nach Themen sortiert**
-✅ **Kurz + klar + vollständig**
+Natürlich — hier ist dein kompletter **Silent Santa iOS Testplan** als perfekt strukturiertes, copy-paste-fertiges **Markdown-Dokument mit Checkboxes (✓)**.
 
 ---
 
-# 📄 **SilentSanta – MANUELLE QA / TEST CHECKLISTE (MVP)**
+# 🎄 Silent Santa – Vollständiger QA Testplan
 
-> **Version:** 1.0
-> **Stand:** Heute
-> **Nutzen:** Vor jedem Deployment ausführen
+### *(Markdown-Version mit Häkchen zum Abhaken)*
+✅
+🚩
+---
+
+## ## 🧪 BLOCK 1 — AUTHENTICATION
+
+### **Login**
+
+* [✅] App starten
+* [✅] Username eingeben
+* [✅] Passwort eingeben
+* [✅] Auf **Login** klicken
+* [🚩] Erwartung: UserHomeScreen erscheint mit korrektem Namen => manchmal ist ein anderer Name, kann aber auch Simulator-Problem sein. Ich hoff der Prod wird es nicht geben.
+
+### **Logout**
+
+* [🚩] Auf **Logout** scrollen → drücken => keine Reaktion auf Logout-Drücken
+* [🚩] Erwartung: Token gelöscht, zurück zum LoginScreen
+* [🚩] Erwartung: Kein alter Benutzername erscheint
 
 ---
 
-# 1️⃣ AUTHENTIFIZIERUNG
+## 🧪 BLOCK 2 — PROFIL & AVATAR
 
-## 🔐 Login / Logout
+### **Default Avatar**
 
-* [✅] Benutzer kann sich korrekt einloggen
-* [✅] Falsche Credentials → Fehlermeldung, kein Crash
-* [ ] Logout entfernt Token
-* [ ] Nach Logout sind geschützte Seiten nicht mehr erreichbar
-* [✅] App startet korrekt in Landing/Login Screen
+* [🚩] Wenn kein Avatar gesetzt → Standard-Avatar wird angezeigt => zeigt nicht, also verweist auch nichts
+* [🚩] URL verweist auf `/static/avatars/default-avatar.png`
 
----
+### **Avatar ändern**
 
-# 2️⃣ WISHLIST
+* [🚩] Avatar antippen => Avatar bleibt leer aus und lässt sich nicht ändern, keine Ahnugn was los ist
+* [🚩] Bild auswählen
+* [🚩] Upload erfolgreich
+* [🚩] Erwartung: Neues Bild erscheint sofort
+* [🚩] Neustart der App → Avatar bleibt gespeichert
+* [✅] Rotes „+“ Icon sichtbar
 
-## 🎁 CRUD-Funktionen
+### **Avatar Upload Fehlerfall**
 
-* [✅] Neues Item hinzufügen
-* [✅] Item bearbeiten (Titel, Beschreibung, Preis, Priorität, Bild)
-* [✅] Item löschen
-* [✅] Bild wird korrekt angezeigt
-* [✅] Wishlist bleibt nach Neustart bestehen
-
-## 🔍 Suche + Sortieren
-
-* [✅] Suche filtert korrekt
-* [✅] Sortierung Priority funktioniert
-* [✅] Sortierung A–Z (Asc/Desc) funktioniert
-* [✅] Sortierung Price (Asc/Desc) funktioniert
-* [✅] „None“ entfernt Sortierung
-
-## 🔄 Reload Verhalten
-
-* [✅] Zurücknavigieren lädt Daten neu
-* [✅] `useFocusEffect` funktioniert zuverlässig
+* [🚩] Upload abbrechen oder ungültige Datei hochladen => da das Avatar nicht uploadbar ist un der Default nicht angezeigt wird, ist hier alles eine rote Flagge.
+* [🚩] Erwartung: Fehler-Alert erscheint, App crasht nicht
 
 ---
 
-# 3️⃣ TEAMS
+## 🧪 BLOCK 3 — TEAMS
 
-## 👥 Team-Management
+### **Team erstellen (Admin)**
 
-* [✅] Team erstellen
-* [✅] Invite Code kopieren
-* [✅] Team beitreten funktioniert
-* [✅] Mitgliederliste zeigt korrekte User
-* [✅] Owner wird visuell gekennzeichnet
-* [✅] Team löschen funktioniert nur für Owner
-* [✅] Team verlassen funktioniert für Member
-* [✅] User verlassen → activeTeamId wird zurückgesetzt
+* [ ] Admin öffnet *Meine Teams*
+* [ ] „Team erstellen“
+* [ ] Teamname eingeben
+* [ ] Erwartung: Invite-Code wird angezeigt
+* [ ] Team erscheint in Liste
 
-## 👢 Kick-Funktion
+### **Team beitreten (User)**
 
-* [✅] Owner kann Member kicken
-* [✅] Gekickter User sieht kein Team mehr
-* [✅] TeamList aktualisiert sich automatisch
+* [ ] Einladungscode eingeben
+* [ ] Erwartung: User wird Mitglied
+* [ ] activeTeamId wird gesetzt
+* [ ] Teamname erscheint auf UserHomeScreen
 
-## 🔄 Active Team Handling
+### **Team aktiv setzen**
 
-* [✅] Team aktivieren funktioniert
-* [✅] activeTeamId wird gespeichert (SecureStore)
-* [✅] App-Neustart → activeTeamId korrekt geladen
+* [ ] Team auswählen → „aktiv setzen“
+* [ ] Erwartung: UserHomeScreen zeigt dieses Team
 
----
+### **Team verlassen**
 
-# 4️⃣ MATCHING CONFIG (ADMIN)
-
-## 📅 Datum setzen
-
-* [✅] Admin/Owner kann Matching-Datum setzen
-* [✅] Datum erscheint in App
-* [✅] iOS + Android DatePicker verhalten korrekt
-* [✅] Countdown startet
-
-## 🗑 Datum löschen
-A3555688
-* [✅] Admin kann Datum löschen
-* [✅] Countdown verschwindet
-* [ ] scheduledDate im Context = null
+* [ ] „Team verlassen“ drücken
+* [ ] Erwartung: User ist nicht mehr Mitglied
+* [ ] activeTeamId = null
+* [ ] HomeScreen zeigt Hinweis „Kein aktives Team“
 
 ---
 
-# 5️⃣ MATCHING-PROZESS
+## 🧪 BLOCK 4 — WISHLIST
 
-## ▶ Manual Matching
+### **Wishlist erstellen**
 
-* [✅] Admin löst `/run-manual` aus
-* [✅] Matching wird gespeichert
-* [✅] Partner werden korrekt zugeordnet
-* [✅] Partnerwunschliste wird auch korrekt angezeigt
-* [] lastRunAt wird gesetzt
-* [X] User erhalten einmaligen Alert „Matching wurde ausgelost“
+* [ ] Neues Item hinzufügen
+* [ ] Titel setzen
+* [ ] Beschreibung setzen
+* [ ] Preis setzen
+* [ ] Priorität wählen (Rot/Blau/Grün)
+* [ ] Bild hochladen
+* [ ] Erwartung: Item erscheint sofort
 
-## ⏰ Scheduled Matching
+### **Wishlist editieren**
 
-* [✅] Datum in Zukunft setzen (z. B. +1 Minute)
-* [✅] Countdown läuft
-* [ ] Matching startet automatisch
-* [ ] executed = true
-* [ ] Alerts werden angezeigt
+* [ ] Item öffnen → bearbeiten
+* [ ] Erwartung: Änderungen sofort sichtbar
 
-## 🔁 Matching nach Änderungen
+### **Wishlist löschen**
 
-* [ ] Nach Teamänderung (Join/Kick/Delete) → dirty wird true
-* [ ] Matching wird erneut ausgeführt
-* [ ] Mapping entspricht neuer Teamgröße
+* [ ] Item löschen
+* [ ] Erwartung: Item verschwindet
 
 ---
 
-# 6️⃣ MATCHING STATUS CONTEXT
+## 🧪 BLOCK 5 — MATCHING (ADMIN-FUNKTIONEN)
 
-## 🔄 Polling
+### **Matching-Datum setzen**
 
-* [ ] Status aktualisiert sich automatisch (alle 15s)
-* [ ] executed true/false wird korrekt gesetzt
-* [ ] scheduledDate wird korrekt angezeigt
-* [ ] lastRunAt löst nur einen Alert aus
+* [ ] AdminDashboard öffnen
+* [ ] Datum + Uhrzeit wählen (1–2 Minuten in der Zukunft)
+* [ ] Erwartung:
 
-## 🎅 UI-Reaktionen
+  * [ ] Countdown erscheint im HomeScreen
+  * [ ] Countdown erscheint im BetweenScreen
 
-* [✅] Wishlist zeigt Partner-Button erst nach ausgeführtem Matching
-* [ ] Partner-Button verschwindet, wenn Team gewechselt wird
+### **Matching automatisch laufen lassen**
 
----
+* [ ] Countdown abwarten
+* [ ] Erwartung:
 
-# 7️⃣ PARTNER VIEW
+  * [ ] executed = true
+  * [ ] lastRunAt wird gesetzt
+  * [ ] Partner-Zuordnung verfügbar
 
-## 👤 MyPartner
+### **Matching manuell starten**
 
-* [✅] „Du bist SilentSanta von X“ erscheint korrekt
-* [ ] Kein Matching → korrekte Meldung
-* [ ] Kein Team → korrekte Meldung
+* [ ] „Matching jetzt ausführen“ drücken
+* [ ] Erwartung:
 
-## 📜 Partner Wishlist
-
-* [✅] Partner-Wishlist lädt Items eines anderen Users
-* [✅] Bilder des Partners werden angezeigt
-* [X] Sortierung funktioniert auch dort
-* [✅] Kein Crash bei leerer Liste
+  * [ ] Partner sofort verfügbar
+  * [ ] executed = true
 
 ---
 
-# 8️⃣ MULTI-TEAM VERHALTEN
+## 🧪 BLOCK 6 — PARTNER-ZUORDNUNG
 
-## 🔁 Szenarien
+### **PartnerScreen**
 
-* [ ] User ist in 2+ Teams
-* [ ] Aktives Team wechseln → alle Matching-FUIs reagieren
-* [ ] MatchingStatusContext zeigt Status des aktiven Teams
-* [ ] Partner ändert sich korrekt pro Team
+* [ ] *Mein Partner* öffnen
+* [ ] Erwartung falls Partner existiert:
 
----
+  * [ ] Name sichtbar
+  * [ ] Avatar sichtbar
+  * [ ] Button „Partner Wishlist anzeigen“
 
-# 9️⃣ FEHLERFÄLLE
+### **PartnerWishlist**
 
-## ❌ Netzwerk & Backend
+* [ ] PartnerWishlist öffnen
+* [ ] Erwartung:
 
-* [ ] Kein Internet → UI bleibt stabil
-* [ ] Backend down → UI zeigt Fehlermeldung statt Crash
-* [ ] 401 → Benutzer wird ausgeloggt
+  * [ ] Items sichtbar
+  * [ ] Keine Edit-Möglichkeiten
 
-## ❌ Datenprobleme
+### **Falls Matching nicht executed**
 
-* [ ] MatchingConfig existiert nicht → kein Crash
-* [ ] Matching ohne ausreichend Teammitglieder → keine Fehler
-* [ ] Partner nicht vorhanden → saubere Anzeige
+* [ ] Erwartung: „Matching wurde noch nicht ausgeführt.“
 
 ---
 
-# 🔟 BONUS: USER EXPERIENCE
+## 🧪 BLOCK 7 — MATCHINGSTATUS CONTEXT
 
-## 🎨 UX Checks
+### **App-Neustart**
 
-* [ ] Buttons reagieren sofort
-* [ ] Ladeindikatoren überall vorhanden
-* [ ] Fehlermeldungen verständlich
-* [ ] Keine UI-Flashes beim Statewechsel
+* [ ] App beenden & erneut öffnen
+* [ ] Erwartung:
 
----
+  * [ ] Countdown korrekt
+  * [ ] Teamname korrekt
+  * [ ] Avatar korrekt
+  * [ ] Polling funktioniert
 
-# 🌟 Abschluss-Test
+### **Countdown Logik testen**
 
-Wenn **alle Häkchen gesetzt** sind:
+* [ ] Datum auf verschiedene Zeiten stellen
 
-### ⭐ Ready for Deployment
-
-→ Backend deployen
-→ Mobile App EAS Build (Android & iOS)
-→ ENV Variablen prüfen
-→ API-URL einstellen
+  * [ ] 2 Tage → „2 Tage xx Std“
+  * [ ] 0 Minuten → „Matching läuft“
 
 ---
 
-# Willst du diese Checkliste als **.md Datei** zum Download?
+## 🧪 BLOCK 8 — DEFAULT-IMAGES
 
-Ich kann sie dir auch direkt als **Notion-Template** oder **PDF** generieren.
+### **User Default Avatar**
 
+* [ ] Bild: `/static/avatars/default-avatar.png` erscheint
 
+### **Team Default Avatar**
+
+* [ ] Bild: `/static/avatars/default-team.png` erscheint
+
+### **Static Resources Test**
+
+* [ ] Browser öffnen:
+  `http://localhost:8080/static/avatars/default-avatar.png`
+* [ ] Erwartung: Bild lädt
+
+---
+
+## 🧪 BLOCK 9 — NAVIGATION
+
+* [ ] Alle Back-Buttons funktionieren
+* [ ] Navigation zwischen Home → Wishlist → Item → Back
+* [ ] Navigation zu AdminDashboard funktioniert
+* [ ] Navigation zu TeamList funktioniert
+
+---
+
+## 🧪 BLOCK 10 — PRODUCTION SIMULATION
+
+### **Token Persistenz**
+
+* [ ] App schließen
+* [ ] Erneut öffnen
+* [ ] Erwartung: User bleibt eingeloggt
+
+### **Offline-Modus testen**
+
+* [ ] Internet deaktivieren
+* [ ] Aktionen ausführen
+* [ ] Erwartung: Fehler-Alerts erscheinen, aber App bleibt stabil
+
+---
+
+# 🎉 Fertig!
+
+Wenn du alle Checkboxen abhaken kannst → **App ist deploy-ready**.
+
+---
+
+Wenn du möchtest, mache ich dir:
+
+📄 **Eine hübsche PDF-Version**
+🧪 **Einen automatisierten QA-Testplan**
+🚀 **Einen Deployment-Guide für Render, Railway oder Docker+EC2**
+
+Sag einfach:
+
+👉 *„Bitte PDF-Version“*
+oder
+👉 *„Bitte Deployment-Guide“*

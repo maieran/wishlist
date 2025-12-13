@@ -3,11 +3,12 @@ package com.silentsanta.wishlist_back.team.dto;
 import java.util.List;
 
 public record TeamMeResponse(
-        Long teamId,
+        Long id,
         String name,
         String inviteCode,
-        boolean owner,
+        boolean isOwner,
         List<TeamMemberDto> members,
-        Long ownerId // highlight the owner of the Group
-        
+        Long ownerId,
+        String teamAvatarUrl
 ) {}
+

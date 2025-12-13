@@ -1,8 +1,17 @@
 package com.silentsanta.wishlist_back.user;
 
+import java.io.File;
+import java.util.Map;
+
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+import com.silentsanta.wishlist_back.matching.MatchingConfig;
+import com.silentsanta.wishlist_back.matching.MatchingService;
+import com.silentsanta.wishlist_back.team.TeamEntity;
+import com.silentsanta.wishlist_back.team.TeamRepository;
 
 @Service
 public class UserService {
@@ -75,4 +84,28 @@ public class UserService {
         userRepository.save(user);
     }
 
+    public String uploadAvatar(MultipartFile file) {
+        UserEntity me = getAuthenticatedUser();
+
+        try {
+            String folder = "uploads/avatars/";
+            File dir = new File(folder);
+            if (!dir.exists()) dir.mkdirs();
+
+            String filename = "user_" + me.getId() + "_" + System.currentTimeMillis() + ".jpg";
+            File dest = new File(dir, filename);
+
+            file.transferTo(dest);
+
+            String publicUrl = "/uploads/avatars/" + filename;
+
+            me.setAvatarUrl(publicUrl);
+            userRepository.save(me);
+
+            return publicUrl;
+
+        } catch (Exception e) {
+            throw new RuntimeException("Avatar upload failed", e);
+        }
+    }
 }

@@ -1,3 +1,4 @@
+// src/screens/TeamScreen.tsx
 import React, { useEffect, useState } from "react";
 import { View, Text, Button, FlatList, Alert, Share } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -17,13 +18,15 @@ type TeamMember = {
 };
 
 type TeamMeResponse = {
-  teamId: number;
+  id: number;                 // statt teamId
   name: string;
   inviteCode: string;
-  owner: boolean;
+  isOwner: boolean;           // statt owner
   ownerId: number | null;
   members: TeamMember[];
+  teamAvatarUrl?: string;
 };
+
 
 export default function TeamScreen({ navigation }: Props) {
   const [team, setTeam] = useState<TeamMeResponse | null>(null);
@@ -31,9 +34,6 @@ export default function TeamScreen({ navigation }: Props) {
   const [myUserId, setMyUserId] = useState<number | null>(null);
   const isFocused = useIsFocused();
 
-  // ----------------------------------------------
-  // 🟦 Header Buttons (nur wenn User KEIN Team hat)
-  // ----------------------------------------------
   React.useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () =>
@@ -46,22 +46,23 @@ export default function TeamScreen({ navigation }: Props) {
     });
   }, [navigation, hasTeam]);
 
-  // ----------------------------------------------
-  // 🟩 Team laden
-  // ----------------------------------------------
   useEffect(() => {
     async function load() {
       const active = await SecureStore.getItemAsync("activeTeamId");
 
       if (!active) {
-        // User hat überhaupt kein aktives Team
         setTeam(null);
         setHasTeam(false);
         return;
       }
 
       const me = await apiGet("/api/auth/me");
-      setMyUserId(me.userId);
+      if (!me) {
+        setHasTeam(false);
+        setTeam(null);
+        return;
+      }
+      setMyUserId(me.id); // WICHTIG: id, nicht userId!
 
       try {
         const res = await apiTeamDetails(Number(active));
@@ -75,6 +76,9 @@ export default function TeamScreen({ navigation }: Props) {
 
     if (isFocused) load();
   }, [isFocused]);
+
+  // … Rest deines Teamscreens UNVERÄNDERT …
+
 
   // ----------------------------------------------
   // 🟪 UI Actions
@@ -104,7 +108,7 @@ export default function TeamScreen({ navigation }: Props) {
     if (!team) return;
 
     try {
-      await apiTeamKick(team.teamId, userId);
+      await apiTeamKick(team.id, userId);
       await refreshTeam();
       Alert.alert("Erfolgreich", "Mitglied wurde entfernt.");
     } catch (err: any) {
@@ -132,7 +136,7 @@ export default function TeamScreen({ navigation }: Props) {
           style: "destructive",
           onPress: async () => {
             try {
-              await apiTeamDelete(team.teamId);
+              await apiTeamDelete(team.id);
               await SecureStore.deleteItemAsync("activeTeamId");
               Alert.alert("Gelöscht", "Team wurde erfolgreich gelöscht.");
               navigation.navigate("TeamList");
@@ -149,7 +153,7 @@ export default function TeamScreen({ navigation }: Props) {
     if (!team) return;
 
     try {
-      await apiTeamLeave(team.teamId);
+      await apiTeamLeave(team.id);
       await SecureStore.deleteItemAsync("activeTeamId");
 
       Alert.alert("Team verlassen", "Du hast das Team verlassen.", [
@@ -218,7 +222,7 @@ export default function TeamScreen({ navigation }: Props) {
               <Text style={{ color: "gold", fontWeight: "bold" }}>👑 Owner</Text>
             )}
 
-            {team.owner && item.userId !== myUserId && (
+            {team.isOwner && item.userId !== myUserId && (
               <Button
                 title="Kick"
                 color="red"
@@ -230,14 +234,14 @@ export default function TeamScreen({ navigation }: Props) {
       />
 
       {/* Leave */}
-      {!team.owner && (
+      {!team.isOwner && (
         <View style={{ marginTop: 20 }}>
           <Button title="Team verlassen" color="red" onPress={onLeave} />
         </View>
       )}
 
       {/* Delete (nur Owner) */}
-      {team.owner && (
+      {team.isOwner && (
         <View style={{ marginTop: 20 }}>
           <Button title="Team löschen" color="red" onPress={onDeleteTeam} />
         </View>

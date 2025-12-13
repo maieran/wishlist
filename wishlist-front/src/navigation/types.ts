@@ -1,7 +1,9 @@
 export type RootStackParamList = {
   Landing: undefined;
   Login: undefined;
+  Between: undefined;
   Home: undefined;
+  Rules: undefined;
 
   Wishlist: undefined;
   AddItem: undefined;

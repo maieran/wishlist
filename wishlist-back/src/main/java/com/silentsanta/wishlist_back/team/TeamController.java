@@ -48,8 +48,10 @@ public class TeamController {
                             t.getName(),
                             isOwner,
                             ownerId,
-                            t.getInviteCode()
+                            t.getInviteCode(),
+                            t.getTeamAvatarUrl()
                     );
+
                 })
                 .toList();
 
@@ -80,8 +82,7 @@ public class TeamController {
         TeamEntity team = teamRepository.findById(teamId)
                 .orElseThrow(() -> new ApiException(404, "Team nicht gefunden."));
 
-        boolean isOwner = team.getOwner() != null &&
-                team.getOwner().getId().equals(me.getId());
+
 
         List<TeamMemberDto> members = teamMemberRepository.findByTeamId(teamId)
                 .stream()
@@ -92,14 +93,19 @@ public class TeamController {
                 ))
                 .toList();
 
-        TeamMeResponse res = new TeamMeResponse(
-                team.getId(),
-                team.getName(),
-                team.getInviteCode(),
-                isOwner,
-                members,
-                team.getOwner() != null ? team.getOwner().getId() : null
-        );
+                boolean isOwner = team.getOwner() != null &&
+                team.getOwner().getId().equals(me.getId());
+                
+                TeamMeResponse res = new TeamMeResponse(
+                        team.getId(),
+                        team.getName(),
+                        team.getInviteCode(),
+                        isOwner,
+                        members,
+                        team.getOwner() != null ? team.getOwner().getId() : null,
+                        team.getTeamAvatarUrl()
+                );
+
 
         return ResponseEntity.ok(res);
     }

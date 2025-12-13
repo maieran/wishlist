@@ -34,5 +34,15 @@ public class UserEntity {
     @Column(name = "active_team_id")
     private Long activeTeamId;
 
+    @Column(name = "avatar_url", nullable = true)
+    private String avatarUrl = "/static/avatars/default-avatar.png";
+
+    public String getAvatarUrl() {
+    return avatarUrl != null && !avatarUrl.isBlank()
+            ? avatarUrl
+            : "/avatars/default-avatar.png";
+}
+
+
 }
 

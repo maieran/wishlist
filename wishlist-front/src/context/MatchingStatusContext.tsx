@@ -1,97 +1,151 @@
-import React, {
-  createContext,
-  useState,
-  useEffect,
-  useRef,
-  ReactNode,
-} from "react";
-import { Alert } from "react-native";
-import { apiMatchingStatus } from "../api/matching";
+// src/context/MatchingStatusContext.tsx
+import React, { createContext, useEffect, useState } from "react";
+import { apiGet } from "../api/api";
+import * as SecureStore from "expo-secure-store";
 
-type MatchingStatus = {
-  executed: boolean;
-  scheduledDate: string | null;
-  lastRunAt: string | null;
-  hasPartner: boolean;
-};
+export const MatchingStatusContext = createContext<any>(null);
 
-export const MatchingStatusContext = createContext<MatchingStatus>({
-  executed: false,
-  scheduledDate: null,
-  lastRunAt: null,
-  hasPartner: false,
-});
+export function MatchingStatusProvider({ children }: any) {
+  const [loading, setLoading] = useState(true);
 
-type Props = {
-  children: ReactNode;
-};
+  const [userDisplayName, setUserDisplayName] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
 
-export function MatchingStatusProvider({ children }: Props) {
-  const [state, setState] = useState<MatchingStatus>({
-    executed: false,
-    scheduledDate: null,
-    lastRunAt: null,
-    hasPartner: false,
-  });
+  const [activeTeamId, setActiveTeamId] = useState<number | null>(null);
+  const [activeTeamName, setActiveTeamName] = useState("");
 
-  const lastAlertRunAt = useRef<string | null>(null);
+  const [scheduledDate, setScheduledDate] = useState<string | null>(null);
+  const [lastRunAt, setLastRunAt] = useState<string | null>(null);
+  const [hasPartner, setHasPartner] = useState(false);
+
+  const [countdownText, setCountdownText] = useState("");
+
+  // ----------------------------------------
+  // 📅 EFFECTIVE DATE (für Kalender!)
+  // ----------------------------------------
+  const effectiveDate = scheduledDate ?? lastRunAt;
+
+  const effectiveDateISO = effectiveDate
+    ? new Date(effectiveDate).toISOString().slice(0, 10)
+    : null;
+
+  const effectiveDatePretty = effectiveDate
+    ? new Date(effectiveDate).toLocaleDateString("de-DE", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      })
+    : "";
+
+  const effectiveWeekday = effectiveDate
+    ? new Date(effectiveDate).toLocaleDateString("de-DE", { weekday: "long" })
+    : "";
+
+  // ----------------------------------------
+  async function loadStatus() {
+    try {
+      setLoading(true);
+
+      const me = await apiGet("/api/auth/me");
+      if (!me) return;
+
+      setUserDisplayName(me.displayName);
+      setAvatarUrl(me.avatarUrl);
+      setIsAdmin(me.admin === true);
+      setActiveTeamId(me.activeTeamId ?? null);
+
+      if (me.activeTeamId) {
+        const team = await apiGet(`/api/team/me?teamId=${me.activeTeamId}`);
+        setActiveTeamName(team?.name ?? "");
+      } else {
+        setActiveTeamName("");
+      }
+
+      // 🔑 Matching STATUS
+      const status = await apiGet("/api/matching/status");
+
+      setScheduledDate(status.matchDate ?? null);
+      setLastRunAt(status.lastRunAt ?? null);
+
+      // 🔑 Partner = einzig verlässlicher Done-Status
+      if (me.activeTeamId) {
+        const partner = await apiGet(
+          `/api/matching/me?teamId=${me.activeTeamId}`
+        );
+        setHasPartner(partner?.found === true);
+      } else {
+        setHasPartner(false);
+      }
+    } catch (e) {
+      console.log("MatchingStatusContext error", e);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // ----------------------------------------
+  // ⏳ COUNTDOWN (nur wenn scheduled)
+  // ----------------------------------------
+  useEffect(() => {
+    const id = setInterval(() => {
+      if (!scheduledDate) {
+        setCountdownText("");
+        return;
+      }
+
+      const diff = new Date(scheduledDate).getTime() - Date.now();
+      if (diff <= 0) {
+        setCountdownText("Matching wird ausgeführt …");
+        return;
+      }
+
+      const h = Math.floor(diff / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+
+      setCountdownText(`${h}h ${m}m ${s}s`);
+    }, 1000);
+
+    return () => clearInterval(id);
+  }, [scheduledDate]);
 
   useEffect(() => {
-    let cancelled = false;
-
-    async function fetchStatus() {
-      try {
-        const status = await apiMatchingStatus();
-
-        if (cancelled) return;
-
-        const scheduled =
-          status.matchDate || status.scheduledDate || status.dateTime || null;
-
-        const lastRun: string | null = status.lastRunAt || null;
-
-        setState({
-          executed: !!status.executed,
-          scheduledDate: scheduled,
-          lastRunAt: lastRun,
-          hasPartner: !!status.hasPartner,
-        });
-
-        // ✅ Optional: einmalige Benachrichtigung, wenn Matching gerade lief
-        if (lastRun) {
-          const lastRunMs = new Date(lastRun).getTime();
-          const now = Date.now();
-
-          if (
-            now - lastRunMs < 10_000 && // innerhalb der letzten 10 Sek
-            lastAlertRunAt.current !== lastRun
-          ) {
-            Alert.alert(
-              "🎅 Silent Santa Matching",
-              "Dein Partner wurde soeben ausgelost!"
-            );
-            lastAlertRunAt.current = lastRun;
-          }
-        }
-      } catch (e) {
-        console.log("Error fetching matching status", e);
-      }
-    }
-
-    // Initialer Call
-    fetchStatus();
-
-    // Polling alle 15 Sekunden
-    const id = setInterval(fetchStatus, 15_000);
-
-    return () => {
-      cancelled = true;
-      clearInterval(id);
-    };
+    loadStatus();
+    const poll = setInterval(loadStatus, 10000);
+    return () => clearInterval(poll);
   }, []);
 
   return (
-    <MatchingStatusContext.Provider value={state}>
+    <MatchingStatusContext.Provider
+      value={{
+        loading,
+
+        userDisplayName,
+        avatarUrl,
+        isAdmin,
+
+        activeTeamId,
+        activeTeamName,
+
+        scheduledDate,
+        lastRunAt,
+
+        effectiveDateISO,
+        effectiveDatePretty,
+        effectiveWeekday,
+
+        hasPartner,
+        countdownText,
+
+        refresh: loadStatus,
+
+        logout: async () => {
+          await SecureStore.deleteItemAsync("token");
+        },
+      }}
+    >
       {children}
     </MatchingStatusContext.Provider>
   );

@@ -13,6 +13,7 @@ import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/types";
 import { apiTeamList, apiTeamActivate } from "../api/team";
 import * as SecureStore from "expo-secure-store";
+import TeamAvatar from "../component/TeamAvatar";
 
 type Props = NativeStackScreenProps<RootStackParamList, "TeamList">;
 
@@ -48,7 +49,7 @@ export default function TeamListScreen({ navigation }: Props) {
   }, [load]);
 
   // -----------------------------
-  // ALWAYS RELOAD WHEN SCREEN FOCUSES
+  // RELOAD WHEN SCREEN FOCUSES
   // -----------------------------
   useFocusEffect(
     useCallback(() => {
@@ -63,9 +64,7 @@ export default function TeamListScreen({ navigation }: Props) {
     try {
       await apiTeamActivate(teamId);
       await SecureStore.setItemAsync("activeTeamId", String(teamId));
-
       setActiveTeamId(teamId);
-
       navigation.navigate("Team");
     } catch (err) {
       Alert.alert("Fehler", "Team konnte nicht aktiviert werden.");
@@ -73,7 +72,7 @@ export default function TeamListScreen({ navigation }: Props) {
   }
 
   // -----------------------------
-  // UI
+  // LOADING UI
   // -----------------------------
   if (loading) {
     return (
@@ -100,6 +99,8 @@ export default function TeamListScreen({ navigation }: Props) {
             <TouchableOpacity
               onPress={() => activateTeam(item.teamId)}
               style={{
+                flexDirection: "row",
+                alignItems: "center",
                 padding: 15,
                 borderWidth: 2,
                 borderColor: isActive ? "green" : "#ccc",
@@ -108,21 +109,28 @@ export default function TeamListScreen({ navigation }: Props) {
                 backgroundColor: isActive ? "#e9ffe9" : "white",
               }}
             >
-              <Text style={{ fontSize: 18, fontWeight: "600" }}>
-                {item.name}
-              </Text>
+              {/* TEAM AVATAR */}
+              <TeamAvatar url={item.teamAvatarUrl} size={55} />
 
-              {isActive && (
-                <Text style={{ color: "green", marginTop: 4 }}>
-                  ✔ Aktives Team
-                </Text>
-              )}
 
-              {item.ownerId && (
-                <Text style={{ color: "gold", marginTop: 4 }}>
-                  👑 Owner ID: {item.ownerId}
+              {/* TEXT */}
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 18, fontWeight: "600" }}>
+                  {item.name}
                 </Text>
-              )}
+
+                {isActive && (
+                  <Text style={{ color: "green", marginTop: 4 }}>
+                    ✔ Aktives Team
+                  </Text>
+                )}
+
+                {item.ownerId && (
+                  <Text style={{ color: "gold", marginTop: 4 }}>
+                    👑 Owner ID: {item.ownerId}
+                  </Text>
+                )}
+              </View>
             </TouchableOpacity>
           );
         }}

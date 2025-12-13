@@ -1,18 +1,17 @@
-import React, {
-  useEffect,
-  useState,
-  useContext,
-} from "react";
+// src/screens/MatchingDateScreen.tsx
+import React, { useEffect, useState, useContext } from "react";
 import {
   View,
   Text,
   Button,
   Alert,
   Platform,
+  ActivityIndicator,
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/types";
+
 import {
   fetchMatchingDate,
   adminSetMatchingDate,
@@ -23,78 +22,74 @@ import { MatchingStatusContext } from "../context/MatchingStatusContext";
 
 type Props = NativeStackScreenProps<RootStackParamList, "MatchingDate">;
 
-type MeResponse = {
-  userId: number;
-  displayName: string;
-  admin: boolean;
-};
-
 export default function MatchingDateScreen({ navigation }: Props) {
+  const { refresh, executed } = useContext(MatchingStatusContext);
+
+  const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+
   const [matchingIso, setMatchingIso] = useState<string | null>(null);
+
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [showPicker, setShowPicker] = useState(false);
+
   const [countdown, setCountdown] = useState("");
 
-  const { scheduledDate, executed } = useContext(MatchingStatusContext);
-
-  // -------- ADMIN FLAG LADEN --------
+  // ------------------------------------
+  // LOAD USER ADMIN FLAG
+  // ------------------------------------
   useEffect(() => {
     async function loadMe() {
       try {
-        const me: MeResponse = await apiGet("/api/auth/me");
+        const me = await apiGet("/api/auth/me");
         setIsAdmin(!!me.admin);
       } catch (e) {
-        console.log("Error loading /api/auth/me", e);
+        console.log(e);
       }
     }
     loadMe();
   }, []);
 
-  // -------- MATCHING DATE LADEN (initial über /api/settings) --------
-  useEffect(() => {
-    async function loadDate() {
-      try {
-        const res = await fetchMatchingDate();
-        if (res.dateTime) {
-          setMatchingIso(res.dateTime);
-          setSelectedDate(new Date(res.dateTime));
-        } else {
-          setMatchingIso(null);
-          setSelectedDate(null);
-        }
-      } catch (e) {
-        console.log("Error loading matching date", e);
+  // ------------------------------------
+  // LOAD MATCH DATE
+  // ------------------------------------
+  async function loadDate() {
+    setLoading(true);
+    try {
+      const res = await fetchMatchingDate();
+      if (res?.dateTime) {
+        setMatchingIso(res.dateTime);
+        setSelectedDate(new Date(res.dateTime));
+      } else {
+        setMatchingIso(null);
+        setSelectedDate(null);
       }
+    } catch (e) {
+      console.log("loadDate ERROR", e);
     }
+    setLoading(false);
+  }
+
+  useEffect(() => {
     loadDate();
   }, []);
 
-  // -------- OPTIONAL: Context-Daten spiegeln --------
-  useEffect(() => {
-    if (scheduledDate) {
-      setMatchingIso(scheduledDate);
-      if (!selectedDate) {
-        setSelectedDate(new Date(scheduledDate));
-      }
-    }
-  }, [scheduledDate]);
-
-  // -------- COUNTDOWN --------
+  // ------------------------------------
+  // COUNTDOWN
+  // ------------------------------------
   useEffect(() => {
     if (!matchingIso) {
       setCountdown("");
       return;
     }
 
-    const target = new Date(matchingIso).getTime();
-
     const id = setInterval(() => {
+      const target = new Date(matchingIso).getTime();
       const now = Date.now();
       const diff = target - now;
 
       if (diff <= 0) {
-        setCountdown("🎅 Matching läuft oder wurde bereits ausgeführt!");
+        setCountdown("🎅 Matching läuft oder wurde ausgeführt!");
         return;
       }
 
@@ -112,39 +107,58 @@ export default function MatchingDateScreen({ navigation }: Props) {
     return () => clearInterval(id);
   }, [matchingIso]);
 
-  // ---------- ADMIN: DATUM SPEICHERN ----------
+  // ------------------------------------
+  // ADMIN SAVE
+  // ------------------------------------
   async function onSave() {
+    if (!selectedDate) {
+      Alert.alert("Fehler", "Bitte ein Datum auswählen.");
+      return;
+    }
+
+    const iso = selectedDate.toISOString();
     try {
-      if (!selectedDate) {
-        Alert.alert("Fehler", "Bitte ein Datum auswählen.");
-        return;
-      }
-
-      const iso = selectedDate.toISOString();
       await adminSetMatchingDate(iso);
-      setMatchingIso(iso);
-
       Alert.alert("Gespeichert", "Matching-Datum wurde gesetzt.");
+
+      await loadDate();
+      refresh(); // Context aktualisieren
+
     } catch (e) {
-      console.log(e);
-      Alert.alert("Fehler", "Konnte Matching-Datum nicht speichern.");
+      Alert.alert("Fehler", "Konnte Datum nicht speichern.");
     }
   }
 
-  // ---------- ADMIN: DATUM LÖSCHEN ----------
+  // ------------------------------------
+  // ADMIN CLEAR
+  // ------------------------------------
   async function onClear() {
     try {
       await adminClearMatchingDate();
-      setMatchingIso(null);
       setSelectedDate(null);
-      Alert.alert("Ok", "Matching-Datum gelöscht.");
+      setMatchingIso(null);
+
+      Alert.alert("Gelöscht", "Matching-Datum entfernt.");
+      refresh();
     } catch (e) {
-      console.log(e);
-      Alert.alert("Fehler", "Konnte Matching-Datum nicht löschen.");
+      Alert.alert("Fehler", "Konnte Datum nicht löschen.");
     }
   }
 
-  // ---------- UI ----------
+  // ------------------------------------
+  // UI
+  // ------------------------------------
+  if (loading) {
+    return (
+      <View
+        style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+      >
+        <ActivityIndicator size="large" />
+        <Text style={{ marginTop: 15 }}>Lade Datum …</Text>
+      </View>
+    );
+  }
+
   return (
     <View style={{ flex: 1, padding: 20 }}>
       <Text style={{ fontSize: 26, marginBottom: 20 }}>
@@ -152,36 +166,37 @@ export default function MatchingDateScreen({ navigation }: Props) {
       </Text>
 
       {matchingIso ? (
-        <Text style={{ marginBottom: 10 }}>
-          Geplantes Matching:
-          {"\n"}
-          <Text style={{ fontWeight: "bold" }}>{matchingIso}</Text>
-        </Text>
+        <>
+          <Text style={{ marginBottom: 10 }}>Geplantes Matching:</Text>
+          <Text style={{ fontWeight: "bold", marginBottom: 20 }}>
+            {matchingIso}
+          </Text>
+        </>
       ) : (
-        <Text style={{ marginBottom: 10 }}>
+        <Text style={{ marginBottom: 20 }}>
           Noch kein Matching-Datum gesetzt.
         </Text>
       )}
 
-      {/* Zusatzinfo aus Context */}
       {executed && (
-        <Text style={{ color: "green", marginBottom: 10 }}>
-          🎅 Matching wurde bereits mindestens einmal ausgeführt.
+        <Text style={{ color: "green", marginBottom: 15 }}>
+          🎄 Matching wurde bereits ausgeführt!
         </Text>
       )}
 
       {countdown !== "" && (
-        <Text style={{ marginBottom: 20, fontSize: 18 }}>
-          Countdown:
-          {"\n"}
-          <Text style={{ fontWeight: "bold" }}>{countdown}</Text>
-        </Text>
+        <>
+          <Text style={{ fontSize: 18, marginBottom: 5 }}>Countdown:</Text>
+          <Text style={{ fontWeight: "bold", marginBottom: 20 }}>
+            {countdown}
+          </Text>
+        </>
       )}
 
-      {/* ----------- ADMIN BEREICH ----------- */}
+      {/* ADMIN CONTROLS */}
       {isAdmin && (
         <>
-          <Text style={{ fontSize: 20, marginBottom: 10, marginTop: 20 }}>
+          <Text style={{ fontSize: 20, marginBottom: 10 }}>
             Admin – Datum auswählen
           </Text>
 
@@ -189,9 +204,7 @@ export default function MatchingDateScreen({ navigation }: Props) {
             <Text style={{ marginBottom: 10 }}>
               Ausgewählt:
               {"\n"}
-              <Text style={{ fontWeight: "bold" }}>
-                {selectedDate.toISOString()}
-              </Text>
+              {selectedDate.toISOString()}
             </Text>
           )}
 
@@ -203,12 +216,10 @@ export default function MatchingDateScreen({ navigation }: Props) {
               mode="datetime"
               display={Platform.OS === "ios" ? "inline" : "default"}
               onChange={(event, date) => {
-                if (event.type === "dismissed") {
-                  setShowPicker(false);
-                  return;
+                if (event.type !== "dismissed" && date) {
+                  setSelectedDate(date);
                 }
                 setShowPicker(false);
-                if (date) setSelectedDate(date);
               }}
             />
           )}
@@ -216,7 +227,9 @@ export default function MatchingDateScreen({ navigation }: Props) {
           <View style={{ height: 20 }} />
 
           <Button title="Matching-Datum speichern" onPress={onSave} />
+
           <View style={{ height: 10 }} />
+
           <Button title="Datum löschen" color="red" onPress={onClear} />
         </>
       )}

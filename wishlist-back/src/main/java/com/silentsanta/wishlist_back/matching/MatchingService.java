@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -87,9 +88,13 @@ public class MatchingService {
         if (cfg.getMatchDate() == null) return;
 
         // Noch nicht Zeit? → Abbruch
+        /*
         if (LocalDateTime.now().isBefore(cfg.getMatchDate())) {
             return;
-        }
+        } */
+        if (!cfg.isDirty()) return;
+        if (LocalDateTime.now().isBefore(cfg.getMatchDate())) return;
+
 
         // Zeitpunkt erreicht → Matching ausführen
         runSilentSantaMatching();
@@ -144,4 +149,56 @@ public class MatchingService {
 
         runSilentSantaMatching();
     }
+
+
+        // Holt oder erzeugt MatchingConfig
+    public MatchingConfig getConfig() {
+        return matchingConfigRepository.findById(1L).orElseGet(() -> {
+            MatchingConfig cfg = new MatchingConfig();
+            matchingConfigRepository.save(cfg);
+            return cfg;
+        });
+    }
+
+    public Map<String, Object> getMatchingStatus() {
+
+        MatchingConfig cfg = getConfig();
+
+        return Map.of(
+            "scheduledDate", cfg.getMatchDate(),
+            "executed", cfg.isExecuted(),
+            "dirty", cfg.isDirty(),
+            "lastRunAt", cfg.getLastRunAt()
+        );
+    }
+
+    public void scheduleMatch(LocalDateTime date) {
+        MatchingConfig cfg = getConfig();
+        cfg.setMatchDate(date);
+        cfg.setExecuted(false);
+        cfg.setDirty(true); // ✔️ Matching soll laufen
+        matchingConfigRepository.save(cfg);
+    }
+
+
+    public void markExecuted() {
+        MatchingConfig cfg = getConfig();
+        cfg.setExecuted(true);
+        cfg.setLastRunAt(LocalDateTime.now());
+        matchingConfigRepository.save(cfg);
+    }
+
+    public Map<String, Object> getMatchingStatusForTeam(Long teamId) {
+
+        MatchingConfig cfg = getConfig();
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("scheduledDate", cfg.getMatchDate());   // darf null sein
+        result.put("executed", cfg.isExecuted());
+        result.put("lastRunAt", cfg.getLastRunAt());       // darf null sein
+
+        return result;
+    }
+
+
 }

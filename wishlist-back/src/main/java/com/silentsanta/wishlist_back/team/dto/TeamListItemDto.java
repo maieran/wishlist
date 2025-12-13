@@ -3,7 +3,9 @@ package com.silentsanta.wishlist_back.team.dto;
 public record TeamListItemDto(
         Long teamId,
         String name,
-        boolean owner,
+        boolean isOwner,
         Long ownerId,
-        String inviteCode 
+        String inviteCode,
+        String teamAvatarUrl
 ) {}
+

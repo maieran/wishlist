@@ -165,16 +165,6 @@ export default function WishlistScreen({ navigation }: Props) {
 
       <Button title="➕ Add Item" onPress={() => navigation.navigate("AddItem")} />
 
-      {/* 🎅 Matching Button */}
-      {teamId && matchingExecuted && (
-        <View style={{ marginTop: 20 }}>
-          <Button
-            title="🎅 Meinen Partner anzeigen"
-            onPress={() => navigation.navigate("MyPartner")}
-          />
-        </View>
-      )}
-
       {/* Wishlist Items */}
       <FlatList
         style={{ marginTop: 10 }}

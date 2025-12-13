@@ -5,7 +5,9 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { RootStackParamList } from "./types";
 
 import LandingScreen from "../screens/LandingScreen";
-import HomeScreen from "../screens/HomeScreen";
+import UserHomeScreen from "../screens/UserHomeScreen";
+import BetweenScreen from "../screens/BetweenScreen";
+import RulesScreen from "../screens/RulesScreen";
 import LoginScreen from "../screens/LoginScreen";
 import WishListScreen from "../screens/WishlistScreen";
 import AddItemScreen from "../screens/AddItemScreen";
@@ -31,7 +33,9 @@ export default function AppNavigator() {
       <Stack.Navigator>
         <Stack.Screen name="Landing" component={LandingScreen} />
         <Stack.Screen name="Login" component={LoginScreen} />
-        <Stack.Screen name="Home" component={HomeScreen} />
+        <Stack.Screen name="Between" component={BetweenScreen} />
+        <Stack.Screen name="Home" component={UserHomeScreen} />
+        <Stack.Screen name="Rules" component={RulesScreen} />
         <Stack.Screen name="AdminDashboard" component={AdminDashboardScreen} />
         <Stack.Screen name="AdminUsers" component={AdminUsersScreen} />
         <Stack.Screen name="AdminCreateUser" component={AdminCreateUserScreen} />

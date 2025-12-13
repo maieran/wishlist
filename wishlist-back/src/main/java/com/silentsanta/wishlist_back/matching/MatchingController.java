@@ -44,7 +44,7 @@ public class MatchingController {
         );
     }
 
-    // ADMIN: Datum setzen
+        // ADMIN: Datum setzen
     @PostMapping("/config")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> setConfig(@RequestBody MatchingConfigRequest req) {
@@ -56,12 +56,13 @@ public class MatchingController {
                 });
 
         cfg.setMatchDate(req.matchDate());
-        cfg.setExecuted(false); // Reset
+        cfg.setExecuted(false);
         cfg.setDirty(true);
         matchingConfigRepository.save(cfg);
 
         return ResponseEntity.ok().build();
     }
+
 
     // ADMIN: Matching jetzt ausführen
     @PostMapping("/run-manual")
@@ -100,7 +101,8 @@ public class MatchingController {
                         Map.of(
                                 "found", true,
                                 "userId", u.getId(),
-                                "displayName", u.getDisplayName()
+                                "displayName", u.getDisplayName(),
+                                "avatarUrl", u.getAvatarUrl()
                         )
                 ))
                 .orElse(ResponseEntity.ok(
@@ -111,7 +113,6 @@ public class MatchingController {
                 ));
     }
 
-    // 🔥 NEU: Matching-Status für Polling
     @GetMapping("/status")
     public ResponseEntity<MatchingStatusDto> status() {
         UserEntity me = userService.getAuthenticatedUser();

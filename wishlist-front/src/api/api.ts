@@ -1,18 +1,7 @@
+// src/api/api.ts
 import * as SecureStore from "expo-secure-store";
 
-export const API_BASE = "http://192.168.0.125:8080";
-
-
-//http://172.18.77.177:8080";
-
-//"http://127.0.0.1:8080"
-
-//"http://172.20.10.7:8080"
-
-
-//"http://192.168.0.125:8080";
-
-// your mac's IP
+export const API_BASE = "http://192.168.178.28:8080";
 
 export class ApiError extends Error {
   status: number;
@@ -25,25 +14,38 @@ export class ApiError extends Error {
   }
 }
 
+// ------------------------------
+// GET (defensiv gegen 401, null)
+// ------------------------------
 export async function apiGet(path: string) {
-  const token = await SecureStore.getItemAsync("token");
-
-  const res = await fetch(API_BASE + path, {
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: "Bearer " + token,
-    },
-  });
-
-  const text = await res.text();
-
   try {
-    return JSON.parse(text);
+    const token = await SecureStore.getItemAsync("token");
+
+    const res = await fetch(API_BASE + path, {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + token,
+      },
+    });
+
+    if (res.status === 401) {
+      return null; // ⛔ ausgeloggt
+    }
+
+    const text = await res.text();
+    try {
+      return JSON.parse(text);
+    } catch {
+      return null;
+    }
   } catch {
-    return null; // leere Antworten sind ok
+    return null;
   }
 }
 
+// ------------------------------
+// POST / PUT / DELETE
+// ------------------------------
 export async function apiPost(
   path: string,
   body: any,
@@ -69,10 +71,9 @@ export async function apiPost(
     parsed = text;
   }
 
-  // ❗ FIX: Hier ApiError verwenden
   if (!res.ok) {
-    const message = parsed?.message || "Unbekannter Fehler beim Server.";
-    throw new ApiError(message, res.status, parsed);
+    const msg = parsed?.message || "Unbekannter Fehler beim Server.";
+    throw new ApiError(msg, res.status, parsed);
   }
 
   return parsed;
