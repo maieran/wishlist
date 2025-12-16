@@ -1,22 +1,22 @@
 // src/api/settings.ts
 import { apiGet, apiPost } from "./api";
 
-export type MatchingDateResponse = {
-  dateTime: string | null; // ISO String oder null
+export type MatchingConfigResponse = {
+  matchDate: string | null;
+  executed?: boolean;
 };
 
-// Alle User dürfen lesen
-export async function fetchMatchingDate(): Promise<MatchingDateResponse> {
-  return apiGet("/api/settings/matching-date");
+// GET
+export async function fetchMatchingConfig(): Promise<MatchingConfigResponse> {
+  return apiGet("/api/matching/config");
 }
 
-// Nur Admins
-export async function adminSetMatchingDate(isoDateTime: string) {
-  return apiPost("/api/admin/settings/matching-date", {
-    dateTime: isoDateTime,
-  });
+// POST (Admin)
+export async function adminSetMatchingDate(iso: string) {
+  return apiPost("/api/matching/config", { matchDate: iso });
 }
 
+// DELETE (Admin)
 export async function adminClearMatchingDate() {
-  return apiPost("/api/admin/settings/matching-date", {}, "DELETE");
+  return apiPost("/api/matching/clear", {});
 }

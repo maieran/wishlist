@@ -1,17 +1,10 @@
 package com.silentsanta.wishlist_back.user;
 
 import java.io.File;
-import java.util.Map;
-
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-
-import com.silentsanta.wishlist_back.matching.MatchingConfig;
-import com.silentsanta.wishlist_back.matching.MatchingService;
-import com.silentsanta.wishlist_back.team.TeamEntity;
-import com.silentsanta.wishlist_back.team.TeamRepository;
 
 @Service
 public class UserService {

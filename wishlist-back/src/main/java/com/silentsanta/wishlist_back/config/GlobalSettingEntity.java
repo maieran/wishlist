@@ -1,3 +1,5 @@
+
+/* 
 package com.silentsanta.wishlist_back.config;
 
 import jakarta.persistence.*;
@@ -20,3 +22,4 @@ public class GlobalSettingEntity {
     @Column(nullable = false)
     private String value; // wir speichern ISO-String (Instant.toString)
 }
+*/

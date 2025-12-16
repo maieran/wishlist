@@ -72,24 +72,47 @@ public class MatchingController {
         return ResponseEntity.ok(Map.of("status", "ok"));
     }
 
-    // ADMIN: Config leeren
+    @PostMapping("/rerun")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> rerunMatching() {
+        MatchingConfig cfg = matchingConfigRepository.findById(1L)
+                .orElseThrow();
+
+        if (!cfg.isExecuted()) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", "Matching wurde noch nicht ausgeführt"));
+        }
+
+        if (!cfg.isDirty()) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", "Matching ist aktuell, kein Re-Run nötig"));
+        }
+
+        matchingService.runManually(); // nutzt bestehende Logik
+        return ResponseEntity.ok(Map.of("status", "rerun"));
+    }
+
+
     @PostMapping("/clear")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> clearConfig() {
         MatchingConfig cfg = matchingConfigRepository.findById(1L)
-                .orElseGet(() -> {
-                    MatchingConfig c = new MatchingConfig();
-                    c.setId(1L);
-                    return c;
-                });
+            .orElseGet(() -> {
+                MatchingConfig c = new MatchingConfig();
+                c.setId(1L);
+                return c;
+            });
 
         cfg.setMatchDate(null);
         cfg.setExecuted(false);
         cfg.setDirty(true);
+        cfg.setLastRunAt(null);
+
         matchingConfigRepository.save(cfg);
 
         return ResponseEntity.ok(Map.of("status", "cleared"));
     }
+
 
     // USER: Partner abrufen
     @GetMapping("/me")

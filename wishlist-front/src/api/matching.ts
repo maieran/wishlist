@@ -16,3 +16,7 @@ export async function apiMyPartner(teamId: number) {
 export async function apiMatchingStatus() {
   return apiGet("/api/matching/status");
 }
+
+export async function adminRerunMatching() {
+  return apiPost("/api/matching/rerun", {});
+}

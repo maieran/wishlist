@@ -5,6 +5,7 @@ import { RootStackParamList } from "../navigation/types";
 import { apiTeamCreate, apiTeamActivate } from "../api/team";
 import { ApiError } from "../api/api";
 import * as SecureStore from "expo-secure-store";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 type Props = NativeStackScreenProps<RootStackParamList, "TeamCreate">;
 
@@ -33,7 +34,7 @@ export default function TeamCreateScreen({ navigation }: Props) {
   }
 
   return (
-    <View style={{ padding: 20 }}>
+    <SafeAreaView style={{ padding: 20 }}>
       <Text style={{ fontSize: 22, marginBottom: 10 }}>Team erstellen</Text>
       <TextInput
         placeholder="Teamname"
@@ -43,6 +44,6 @@ export default function TeamCreateScreen({ navigation }: Props) {
       />
 
       <Button title="Erstellen" onPress={onCreate} />
-    </View>
+    </SafeAreaView>
   );
 }

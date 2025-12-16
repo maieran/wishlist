@@ -14,6 +14,7 @@ import { RootStackParamList } from "../navigation/types";
 import { apiTeamList, apiTeamActivate } from "../api/team";
 import * as SecureStore from "expo-secure-store";
 import TeamAvatar from "../component/TeamAvatar";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 type Props = NativeStackScreenProps<RootStackParamList, "TeamList">;
 
@@ -76,15 +77,15 @@ export default function TeamListScreen({ navigation }: Props) {
   // -----------------------------
   if (loading) {
     return (
-      <View style={{ padding: 20 }}>
+      <SafeAreaView style={{ padding: 20 }}>
         <ActivityIndicator size="large" />
         <Text style={{ marginTop: 10 }}>Lade Teams...</Text>
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={{ padding: 20, flex: 1 }}>
+    <SafeAreaView style={{ padding: 20, flex: 1 }}>
       <Text style={{ fontSize: 24, fontWeight: "600", marginBottom: 20 }}>
         Meine Teams
       </Text>
@@ -147,6 +148,6 @@ export default function TeamListScreen({ navigation }: Props) {
           onPress={() => navigation.navigate("TeamJoin")}
         />
       </View>
-    </View>
+    </SafeAreaView>
   );
 }

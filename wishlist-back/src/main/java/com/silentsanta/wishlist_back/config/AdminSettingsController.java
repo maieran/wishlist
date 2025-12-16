@@ -1,3 +1,4 @@
+/*
 package com.silentsanta.wishlist_back.config;
 
 import com.silentsanta.wishlist_back.config.dto.MatchingDateRequest;
@@ -28,3 +29,5 @@ public class AdminSettingsController {
         return ResponseEntity.noContent().build();
     }
 }
+
+*/

@@ -5,6 +5,8 @@ import { RootStackParamList } from '../navigation/types';
 import * as SecureStore from "expo-secure-store";
 import { apiPost } from "../api/api";
 import { ApiError } from "../api/api"; // Pfad anpassen, falls nötig
+import { SafeAreaView } from "react-native-safe-area-context";
+
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
 
@@ -46,7 +48,7 @@ export default function LoginScreen({ navigation }: Props) {
 
 
   return (
-    <View style={{ padding: 20 }}>
+    <SafeAreaView style={{ padding: 20 }}>
       <Text style={{ fontSize: 26, marginBottom: 20 }}>Login</Text>
 
       <Text>Username</Text>
@@ -65,6 +67,6 @@ export default function LoginScreen({ navigation }: Props) {
       />
 
       <Button title="Login" onPress={login} />
-    </View>
+    </SafeAreaView>
   );
 }

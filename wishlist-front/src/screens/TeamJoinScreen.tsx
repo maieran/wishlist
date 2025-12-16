@@ -4,6 +4,7 @@ import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/types";
 import { apiTeamJoin, apiTeamActivate } from "../api/team";
 import * as SecureStore from "expo-secure-store";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 type Props = NativeStackScreenProps<RootStackParamList, "TeamJoin">;
 
@@ -30,7 +31,7 @@ export default function TeamJoinScreen({ navigation }: Props) {
   }
 
   return (
-    <View style={{ padding: 20 }}>
+    <SafeAreaView style={{ padding: 20 }}>
       <Text style={{ fontSize: 22, marginBottom: 10 }}>Team beitreten</Text>
 
       <TextInput
@@ -42,6 +43,6 @@ export default function TeamJoinScreen({ navigation }: Props) {
       />
 
       <Button title="Beitreten" onPress={onJoin} />
-    </View>
+    </SafeAreaView>
   );
 }

@@ -8,6 +8,7 @@ import { apiGet } from "../api/api";
 import { useIsFocused } from "@react-navigation/native";
 import * as Clipboard from "expo-clipboard";
 import * as SecureStore from "expo-secure-store";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Team">;
 
@@ -169,10 +170,10 @@ export default function TeamScreen({ navigation }: Props) {
   // ----------------------------------------------
   if (!hasTeam) {
     return (
-      <View style={{ padding: 20 }}>
+      <SafeAreaView style={{ padding: 20 }}>
         <Text style={{ marginBottom: 10 }}>Kein aktives Team ausgewählt.</Text>
         <Button title="Meine Teams" onPress={() => navigation.navigate("TeamList")} />
-      </View>
+      </SafeAreaView>
     );
   }
 
@@ -181,7 +182,7 @@ export default function TeamScreen({ navigation }: Props) {
   }
 
   return (
-    <View style={{ padding: 20 }}>
+    <SafeAreaView style={{ padding: 20 }}>
       {/* Team Name */}
       <Text style={{ fontSize: 24, fontWeight: "600", marginBottom: 10 }}>
         {team.name}
@@ -246,6 +247,6 @@ export default function TeamScreen({ navigation }: Props) {
           <Button title="Team löschen" color="red" onPress={onDeleteTeam} />
         </View>
       )}
-    </View>
+    </SafeAreaView>
   );
 }

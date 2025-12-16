@@ -1,3 +1,5 @@
+/*
+
 package com.silentsanta.wishlist_back.config;
 
 import org.springframework.stereotype.Service;
@@ -38,3 +40,4 @@ public class GlobalSettingsService {
             .ifPresent(repo::delete);
     }
 }
+*/

@@ -1,3 +1,5 @@
+/* 
+
 package com.silentsanta.wishlist_back.config;
 
 import com.silentsanta.wishlist_back.config.dto.MatchingDateResponse;
@@ -21,4 +23,6 @@ public class SettingsController {
                 .orElseGet(() -> ResponseEntity.ok(new MatchingDateResponse((Instant) null)));
     }
 }
+
+*/
 

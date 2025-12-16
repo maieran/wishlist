@@ -12,6 +12,7 @@ import {
 import { useFocusEffect } from "@react-navigation/native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/types";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import {
   apiWishlistMy,
@@ -128,7 +129,7 @@ export default function WishlistScreen({ navigation }: Props) {
   // UI
   // ----------------------------
   return (
-    <View style={{ flex: 1, padding: 20 }}>
+    <SafeAreaView style={{ flex: 1, padding: 20 }}>
       <TextInput
         placeholder="Search..."
         value={search}
@@ -213,6 +214,6 @@ export default function WishlistScreen({ navigation }: Props) {
           </TouchableOpacity>
         )}
       />
-    </View>
+    </SafeAreaView>
   );
 }

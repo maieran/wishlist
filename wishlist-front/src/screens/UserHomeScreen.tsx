@@ -5,6 +5,7 @@ import AvatarPicker from "../component/AvatarPicker";
 import { MatchingStatusContext } from "../context/MatchingStatusContext";
 import * as ImagePicker from "expo-image-picker";
 import { apiUploadAvatar } from "../api/user";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function UserHomeScreen({ navigation }: any) {
   const {
@@ -38,7 +39,7 @@ export default function UserHomeScreen({ navigation }: any) {
   };
 
   return (
-    <View style={{ flex: 1, padding: 30 }}>
+    <SafeAreaView style={{ flex: 1, padding: 30 }}>
       {/* Admin */}
       {isAdmin && (
         <TouchableOpacity
@@ -117,6 +118,6 @@ export default function UserHomeScreen({ navigation }: any) {
           }}
         />
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
