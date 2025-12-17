@@ -1,243 +1,191 @@
-Natürlich — hier ist dein kompletter **Silent Santa iOS Testplan** als perfekt strukturiertes, copy-paste-fertiges **Markdown-Dokument mit Checkboxes (✓)**.
+🔐 1. Auth & App-Flow
+⬜ App-Start
+✅🚩
+ App startet ohne weißen Screen
 
----
+ Kein Flackern zwischen Screens
 
-# 🎄 Silent Santa – Vollständiger QA Testplan
+ Status-Bar / Notch verdeckt nichts
 
-### *(Markdown-Version mit Häkchen zum Abhaken)*
-✅
-🚩
----
+⬜ Login
 
-## ## 🧪 BLOCK 1 — AUTHENTICATION
+ Login funktioniert
 
-### **Login**
+ Nach Login → korrekter Screen (Load → Between → Home)
 
-* [✅] App starten
-* [✅] Username eingeben
-* [✅] Passwort eingeben
-* [✅] Auf **Login** klicken
-* [🚩] Erwartung: UserHomeScreen erscheint mit korrektem Namen => manchmal ist ein anderer Name, kann aber auch Simulator-Problem sein. Ich hoff der Prod wird es nicht geben.
+ Kein Zurückspringen auf Login
 
-### **Logout**
+ App merkt sich Login (Token)
 
-* [🚩] Auf **Logout** scrollen → drücken => keine Reaktion auf Logout-Drücken
-* [🚩] Erwartung: Token gelöscht, zurück zum LoginScreen
-* [🚩] Erwartung: Kein alter Benutzername erscheint
+⬜ Logout
 
----
+ Logout löscht Session
 
-## 🧪 BLOCK 2 — PROFIL & AVATAR
+ Danach kein Zugriff mehr auf geschützte Screens
 
-### **Default Avatar**
+🧭 2. Navigation (kritisch vor Design!)
+⬜ Stack-Navigation
 
-* [🚩] Wenn kein Avatar gesetzt → Standard-Avatar wird angezeigt => zeigt nicht, also verweist auch nichts
-* [🚩] URL verweist auf `/static/avatars/default-avatar.png`
+ Jeder Screen ist erreichbar
 
-### **Avatar ändern**
+ Navigation fühlt sich logisch an
 
-* [🚩] Avatar antippen => Avatar bleibt leer aus und lässt sich nicht ändern, keine Ahnugn was los ist
-* [🚩] Bild auswählen
-* [🚩] Upload erfolgreich
-* [🚩] Erwartung: Neues Bild erscheint sofort
-* [🚩] Neustart der App → Avatar bleibt gespeichert
-* [✅] Rotes „+“ Icon sichtbar
+ Kein Screen ist „gefangen“ (kein Back)
 
-### **Avatar Upload Fehlerfall**
+⬜ Back-Buttons
 
-* [🚩] Upload abbrechen oder ungültige Datei hochladen => da das Avatar nicht uploadbar ist un der Default nicht angezeigt wird, ist hier alles eine rote Flagge.
-* [🚩] Erwartung: Fehler-Alert erscheint, App crasht nicht
+ iOS Back-Button sichtbar wo sinnvoll
 
----
+ Custom Zurück-Button funktioniert
 
-## 🧪 BLOCK 3 — TEAMS
+ replace() vs navigate() bewusst eingesetzt
 
-### **Team erstellen (Admin)**
+⚠️ Wichtig:
+Alles, was später Figma-Header bekommt → kein Default-Header nötig
 
-* [ ] Admin öffnet *Meine Teams*
-* [ ] „Team erstellen“
-* [ ] Teamname eingeben
-* [ ] Erwartung: Invite-Code wird angezeigt
-* [ ] Team erscheint in Liste
+⏳ 3. Lade- & Übergangszustände
+⬜ LoadingBetweenScreen
 
-### **Team beitreten (User)**
+ Wird immer kurz angezeigt
 
-* [ ] Einladungscode eingeben
-* [ ] Erwartung: User wird Mitglied
-* [ ] activeTeamId wird gesetzt
-* [ ] Teamname erscheint auf UserHomeScreen
+ Kein Standbild
 
-### **Team aktiv setzen**
+ Kein doppeltes Weiterleiten
 
-* [ ] Team auswählen → „aktiv setzen“
-* [ ] Erwartung: UserHomeScreen zeigt dieses Team
+⬜ Polling
 
-### **Team verlassen**
+ „Aktualisiere …“ sichtbar
 
-* [ ] „Team verlassen“ drücken
-* [ ] Erwartung: User ist nicht mehr Mitglied
-* [ ] activeTeamId = null
-* [ ] HomeScreen zeigt Hinweis „Kein aktives Team“
+ UI bleibt bedienbar
 
----
+ Kein Ruckeln
 
-## 🧪 BLOCK 4 — WISHLIST
+🎄 4. Matching-Flow (User-sichtbar!)
+⬜ Ohne Team
 
-### **Wishlist erstellen**
+ Kein Kalender
 
-* [ ] Neues Item hinzufügen
-* [ ] Titel setzen
-* [ ] Beschreibung setzen
-* [ ] Preis setzen
-* [ ] Priorität wählen (Rot/Blau/Grün)
-* [ ] Bild hochladen
-* [ ] Erwartung: Item erscheint sofort
+ Kein Countdown
 
-### **Wishlist editieren**
+ „Kein Matching aktiv“
 
-* [ ] Item öffnen → bearbeiten
-* [ ] Erwartung: Änderungen sofort sichtbar
+⬜ Mit Team, ohne Datum
 
-### **Wishlist löschen**
+ Kein Countdown
 
-* [ ] Item löschen
-* [ ] Erwartung: Item verschwindet
+ Kein Kalender
 
----
+ Klar verständlicher Zustand
 
-## 🧪 BLOCK 5 — MATCHING (ADMIN-FUNKTIONEN)
+⬜ Mit Team + Datum
 
-### **Matching-Datum setzen**
+ Countdown sichtbar
 
-* [ ] AdminDashboard öffnen
-* [ ] Datum + Uhrzeit wählen (1–2 Minuten in der Zukunft)
-* [ ] Erwartung:
+ Kalender markiert korrekt
 
-  * [ ] Countdown erscheint im HomeScreen
-  * [ ] Countdown erscheint im BetweenScreen
+ Uhrzeit tickt live
 
-### **Matching automatisch laufen lassen**
+⬜ Matching läuft
 
-* [ ] Countdown abwarten
-* [ ] Erwartung:
+ Text „Matching wird ausgeführt …“
 
-  * [ ] executed = true
-  * [ ] lastRunAt wird gesetzt
-  * [ ] Partner-Zuordnung verfügbar
+ Kein Freeze
 
-### **Matching manuell starten**
+⬜ Nach Matching
 
-* [ ] „Matching jetzt ausführen“ drücken
-* [ ] Erwartung:
+ „🎁 Matching wurde ausgeführt!“
 
-  * [ ] Partner sofort verfügbar
-  * [ ] executed = true
+ Button „Mein Partner anzeigen“
 
----
+👥 5. Team-Funktionen
+⬜ Team erstellen
 
-## 🧪 BLOCK 6 — PARTNER-ZUORDNUNG
+ Direkt im Team
 
-### **PartnerScreen**
+ Teamname sichtbar
 
-* [ ] *Mein Partner* öffnen
-* [ ] Erwartung falls Partner existiert:
+⬜ Team beitreten
 
-  * [ ] Name sichtbar
-  * [ ] Avatar sichtbar
-  * [ ] Button „Partner Wishlist anzeigen“
+ Beitritt sichtbar
 
-### **PartnerWishlist**
+ UI aktualisiert sich automatisch
 
-* [ ] PartnerWishlist öffnen
-* [ ] Erwartung:
+⬜ Team ändert sich
 
-  * [ ] Items sichtbar
-  * [ ] Keine Edit-Möglichkeiten
+ Dirty-Status greift
 
-### **Falls Matching nicht executed**
+ Warnung sichtbar (⚠️ Team geändert)
 
-* [ ] Erwartung: „Matching wurde noch nicht ausgeführt.“
+🎁 6. Partner & Wishlist
+⬜ Mein Partner
 
----
+ Nur sichtbar nach Matching
 
-## 🧪 BLOCK 7 — MATCHINGSTATUS CONTEXT
+ Richtiger Partner
 
-### **App-Neustart**
+⬜ Partner-Wishlist
 
-* [ ] App beenden & erneut öffnen
-* [ ] Erwartung:
+ Items sichtbar
 
-  * [ ] Countdown korrekt
-  * [ ] Teamname korrekt
-  * [ ] Avatar korrekt
-  * [ ] Polling funktioniert
+ Kein Edit möglich
 
-### **Countdown Logik testen**
+ Navigation zurück funktioniert
 
-* [ ] Datum auf verschiedene Zeiten stellen
+📋 7. Wishlist (eigene)
+⬜ Liste
 
-  * [ ] 2 Tage → „2 Tage xx Std“
-  * [ ] 0 Minuten → „Matching läuft“
+ Scrollbar ok
 
----
+ Items korrekt
 
-## 🧪 BLOCK 8 — DEFAULT-IMAGES
+⬜ Add / Edit / Delete
 
-### **User Default Avatar**
+ Navigation korrekt
 
-* [ ] Bild: `/static/avatars/default-avatar.png` erscheint
+ Änderungen sofort sichtbar
 
-### **Team Default Avatar**
+🛠 8. Admin-Features (nur sichtbar!)
+⬜ MatchingDateScreen
 
-* [ ] Bild: `/static/avatars/default-team.png` erscheint
+ Datum setzen
 
-### **Static Resources Test**
+ Countdown sichtbar
 
-* [ ] Browser öffnen:
-  `http://localhost:8080/static/avatars/default-avatar.png`
-* [ ] Erwartung: Bild lädt
+ Dirty-Status sichtbar
 
----
+ „Matching neu ausführen“ nur bei dirty
 
-## 🧪 BLOCK 9 — NAVIGATION
+⬜ Admin Dashboard
 
-* [ ] Alle Back-Buttons funktionieren
-* [ ] Navigation zwischen Home → Wishlist → Item → Back
-* [ ] Navigation zu AdminDashboard funktioniert
-* [ ] Navigation zu TeamList funktioniert
+ Nur für Admin sichtbar
 
----
+ Keine Leaks für User
 
-## 🧪 BLOCK 10 — PRODUCTION SIMULATION
+📱 9. iOS-spezifisch (sehr wichtig)
+⬜ SafeArea
 
-### **Token Persistenz**
+ Notch verdeckt nichts
 
-* [ ] App schließen
-* [ ] Erneut öffnen
-* [ ] Erwartung: User bleibt eingeloggt
+ Status-Bar korrekt
 
-### **Offline-Modus testen**
+⬜ Keyboard
 
-* [ ] Internet deaktivieren
-* [ ] Aktionen ausführen
-* [ ] Erwartung: Fehler-Alerts erscheinen, aber App bleibt stabil
+ Keyboard schiebt Inhalte nicht kaputt
 
----
+ Login & Forms nutzbar
 
-# 🎉 Fertig!
+⬜ Rotation (optional)
 
-Wenn du alle Checkboxen abhaken kannst → **App ist deploy-ready**.
+ Keine UI-Explosion
 
----
+🧠 10. UX-Gefühl (ehrlich testen)
 
-Wenn du möchtest, mache ich dir:
+Stell dir bei jedem Screen nur diese Frage:
 
-📄 **Eine hübsche PDF-Version**
-🧪 **Einen automatisierten QA-Testplan**
-🚀 **Einen Deployment-Guide für Render, Railway oder Docker+EC2**
+„Wüsste ein Nicht-Tech-User, was hier gerade passiert?“
 
-Sag einfach:
+ Ladezustand erkennbar
 
-👉 *„Bitte PDF-Version“*
-oder
-👉 *„Bitte Deployment-Guide“*
+ Kein „toter“ Screen
+
+ Kein überraschendes Verhalten
