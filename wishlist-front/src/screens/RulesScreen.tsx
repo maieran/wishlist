@@ -1,74 +1,145 @@
+// src/screens/RulesScreen.tsx
 import React from "react";
-import { View, Text, ScrollView, TextStyle } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Image,
+  ScrollView,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function RulesScreen() {
   return (
-    <ScrollView style={{ flex: 1, padding: 24 }}>
-      <Text style={{ fontSize: 28, fontWeight: "bold", marginBottom: 20 }}>
-        🎅 Silent Santa – Regeln
-      </Text>
+    <SafeAreaView style={styles.safe}>
+      <ScrollView contentContainerStyle={styles.container}>
 
-      <Text style={{ fontSize: 16, marginBottom: 12 }}>
-        Willkommen beim Silent Santa Event! Hier findest du alle Regeln, damit
-        das Erlebnis fair, spannend und anonym bleibt.
-      </Text>
+        {/* TITLE */}
+        <Text style={styles.title}>Participation Rules</Text>
 
-      <Text style={sectionTitle}>1️⃣ Teilnahme</Text>
-      <Text style={sectionText}>
-        • Jedes Teammitglied nimmt automatisch teil, sobald ein Matching
-        durchgeführt wird.{"\n"}
-        • Du bekommst genau eine Person zugelost.
-      </Text>
+        {/* SUBTITLE */}
+        <Text style={styles.subtitle}>
+          We collected all rules in one place to avoid chaos, scandals and
+          philosophical debates in the chat.
+        </Text>
 
-      <Text style={sectionTitle}>2️⃣ Wunschliste</Text>
-      <Text style={sectionText}>
-        • Erstelle 3–10 Wunsch-Items.{"\n"}
-        • Gib Prioritäten an (Rot = wichtig, Blau/Grün = Ideen).{"\n"}
-        • Bilder sind erlaubt!{"\n"}
-        • Sei kreativ, aber realistisch.
-      </Text>
+        {/* FRAME */}
+        <View style={styles.frameWrapper}>
+          <Image
+            source={require("../../assets/images/frame.png")}
+            style={styles.frame}
+            resizeMode="contain"
+          />
 
-      <Text style={sectionTitle}>3️⃣ Matching</Text>
-      <Text style={sectionText}>
-        • Das Matching ist anonym und wird automatisch oder manuell vom Admin
-        gestartet.{"\n"}
-        • Du siehst nur die Wishlist deines Partners – niemand sonst.
-      </Text>
+          {/* WHITE RECTANGLE */}
+          <View style={styles.whiteCard}>
+            <Text style={styles.ruleText}>
+              • Each participant adds their{" "}
+              <Text style={styles.highlight}>wish-list</Text> in advance.
+              {"\n\n"}
+              • On the specified{" "}
+              <Text style={styles.highlight}>date</Text>, pairs are assigned
+              automatically.
+              {"\n\n"}
+              • Nobody sees who they are gifting to until the moment of{" "}
+              <Text style={styles.highlight}>assignment</Text>.
+              {"\n\n"}
+              • The wish-list is a hint, but you may choose something{" "}
+              <Text style={styles.highlight}>of your own</Text>.
+              {"\n\n"}
+              • The main rule — do not{" "}
+              <Text style={styles.highlight}>reveal</Text> the pairs ahead of time.
+            </Text>
 
-      <Text style={sectionTitle}>4️⃣ Budget</Text>
-      <Text style={sectionText}>
-        • Einigt euch im Team auf ein Preislimit.{"\n"}
-        • Halte dich fair daran.
-      </Text>
+            {/* SIGNATURE */}
+            <Text style={styles.signature}> rules</Text>
+          </View>
+        </View>
 
-      <Text style={sectionTitle}>5️⃣ Geschenkübergabe</Text>
-      <Text style={sectionText}>
-        • Bleibe anonym, falls euer Team das so möchte.{"\n"}
-        • Achte auf hässliche Verpackung, wenn ihr einen Ugly-Gift-Contest macht 😄
-      </Text>
-
-      <Text style={sectionTitle}>6️⃣ Respekt</Text>
-      <Text style={sectionText}>
-        • Kein Spott über die Wishlist anderer.{"\n"}
-        • Sei nett, humorvoll, aber nicht verletzend.
-      </Text>
-
-      <Text style={{ marginTop: 30, fontStyle: "italic", color: "#666" }}>
-        Viel Spaß & frohes Wichteln! 🎁✨
-      </Text>
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
-const sectionTitle: TextStyle = {
-  fontSize: 20,
-  fontWeight: "600",
-  marginTop: 20,
-  marginBottom: 6,
-};
+const styles = StyleSheet.create({
+  safe: {
+    flex: 1,
+    backgroundColor: "#F8F6F5",
+  },
 
-const sectionText: TextStyle = {
-  fontSize: 16,
-  color: "#444",
-  lineHeight: 22,
-};
+  container: {
+    alignItems: "center",
+    paddingHorizontal: 24,
+    paddingBottom: 40,
+  },
+
+  /* TITLE */
+  title: {
+    marginTop: 24,
+    fontFamily: "Inter-Regular",
+    fontSize: 36,
+    color: "#472424",
+    textAlign: "center",
+  },
+
+  /* SUBTITLE */
+  subtitle: {
+    marginTop: 12,
+    maxWidth: 313,
+    fontFamily: "PlusJakartaSans-Regular",
+    fontSize: 14,
+    lineHeight: 18,
+    color: "#472424",
+    textAlign: "center",
+  },
+
+  /* FRAME AREA */
+  frameWrapper: {
+    marginTop: 32,
+    width: 381,
+    height: 520,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  frame: {
+    position: "absolute",
+    width: "100%",
+    height: "100%",
+    transform: [{ rotate: "180deg" }],
+  },
+
+  whiteCard: {
+    width: 271,
+    height: 408,
+    backgroundColor: "#FFFFFF",
+    padding: 18,
+    justifyContent: "space-between",
+  },
+
+  /* RULE TEXT */
+  ruleText: {
+    marginTop: 25,
+    fontFamily: "PlusJakartaSans-Regular",
+    fontSize: 14,
+    lineHeight: 18,
+    color: "#472424",
+  },
+
+  highlight: {
+    fontFamily: "PlusJakartaSans-Medium",
+    fontStyle: "italic",
+    color: "#472424",
+  },
+
+  /* SIGNATURE */
+  signature: {
+    alignSelf: "flex-end",
+    marginTop: 12,
+    fontFamily: "BellamySignature",
+    fontSize: 78,
+    lineHeight: 78,
+    color: "#960E12",
+    marginBottom: 10,
+  },
+});
