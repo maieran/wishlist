@@ -1,7 +1,7 @@
 // src/api/api.ts
 import * as SecureStore from "expo-secure-store";
 
-export const API_BASE = "http://172.18.223.39:8080";
+export const API_BASE = "http://192.168.178.28:8080";
 
 export class ApiError extends Error {
   status: number;
