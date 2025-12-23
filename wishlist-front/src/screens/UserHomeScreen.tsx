@@ -1,5 +1,10 @@
 // src/screens/UserHomeScreen.tsx
-import React, { useContext, useMemo } from "react";
+import React, {
+  useContext,
+  useMemo,
+  useEffect,
+  useRef,
+} from "react";
 import {
   View,
   Text,
@@ -19,6 +24,7 @@ export default function UserHomeScreen({ navigation }: any) {
     userDisplayName,
     avatarUrl,
     hasPartner,
+    isAdmin,
     scheduledDate,
     effectiveDateISO,
     logout,
@@ -72,33 +78,57 @@ export default function UserHomeScreen({ navigation }: any) {
     return formatCountdown(diffSeconds);
   }, [scheduledDate, effectiveDateISO]);
 
+  /* ================= AUTO REFRESH NACH MATCHING ================= */
+
+  const refreshedAfterZero = useRef(false);
+
+  useEffect(() => {
+    if (!countdown) return;
+
+    const isZero =
+      countdown.days === "00" &&
+      countdown.hours === "00" &&
+      countdown.minutes === "00" &&
+      countdown.seconds === "00";
+
+    if (isZero && !refreshedAfterZero.current) {
+      refreshedAfterZero.current = true;
+      refresh(); // 🔥 holt hasPartner + Partnerdaten neu
+    }
+  }, [countdown, refresh]);
+
   /* ================= LOGOUT ================= */
 
   const confirmLogout = () => {
-    Alert.alert(
-      "Logout",
-      "Do you really want to log out?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Logout",
-          style: "destructive",
-          onPress: async () => {
-            await logout();
-            navigation.reset({
-              index: 0,
-              routes: [{ name: "Landing" }],
-            });
-          },
+    Alert.alert("Logout", "Do you really want to log out?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Logout",
+        style: "destructive",
+        onPress: async () => {
+          await logout();
+          navigation.reset({
+            index: 0,
+            routes: [{ name: "Landing" }],
+          });
         },
-      ]
-    );
+      },
+    ]);
   };
 
   /* ================= UI ================= */
 
   return (
     <SafeAreaView style={styles.container}>
+      {isAdmin && (
+        <TouchableOpacity
+          style={styles.adminButton}
+          onPress={() => navigation.navigate("AdminDashboard")}
+        >
+          <Text style={styles.adminIcon}>⚙️</Text>
+        </TouchableOpacity>
+      )}
+
       {/* AVATAR */}
       <View style={styles.avatarWrapper}>
         <View style={styles.avatarCircle}>
@@ -106,7 +136,7 @@ export default function UserHomeScreen({ navigation }: any) {
             source={
               avatarUrl
                 ? { uri: avatarUrl }
-                : require("../../assets/images/kitty-in-presents.jpg")
+                : require("../../assets/images/kitty-in-present.jpg")
             }
             style={styles.avatarImage}
           />
@@ -141,7 +171,7 @@ export default function UserHomeScreen({ navigation }: any) {
         </TouchableOpacity>
       )}
 
-      {/* RULES (OUTLINE – gleiche Größe) */}
+      {/* RULES */}
       <TouchableOpacity
         style={[styles.buttonBase, styles.outlineButton]}
         onPress={() => navigation.navigate("Rules")}
@@ -149,7 +179,7 @@ export default function UserHomeScreen({ navigation }: any) {
         <Text style={styles.outlineButtonText}>Participation rules</Text>
       </TouchableOpacity>
 
-      {/* WISHLIST (PRIMARY) */}
+      {/* WISHLIST */}
       <TouchableOpacity
         style={styles.primaryButton}
         onPress={() => navigation.navigate("Wishlist")}
@@ -157,7 +187,7 @@ export default function UserHomeScreen({ navigation }: any) {
         <Text style={styles.primaryButtonText}>My wishlist</Text>
       </TouchableOpacity>
 
-      {/* TEAMS (SECONDARY – gleiche Größe) */}
+      {/* TEAMS */}
       <TouchableOpacity
         style={[styles.buttonBase, styles.secondaryButton]}
         onPress={() => navigation.navigate("TeamList")}
@@ -166,7 +196,7 @@ export default function UserHomeScreen({ navigation }: any) {
       </TouchableOpacity>
 
       {/* COUNTDOWN */}
-      {countdown && (
+      {countdown && !hasPartner && (
         <View style={styles.countdownWrapper}>
           <Text style={styles.countdownLabel}>
             Remaining time until matching:
@@ -174,13 +204,13 @@ export default function UserHomeScreen({ navigation }: any) {
 
           <Text style={styles.countdownLine}>
             <Text style={styles.countdownNumber}>{countdown.days}</Text>
-            <Text style={styles.countdownUnit}> days </Text>:
-            <Text style={styles.countdownNumber}> {countdown.hours}</Text>
-            <Text style={styles.countdownUnit}> hours </Text>:
-            <Text style={styles.countdownNumber}> {countdown.minutes}</Text>
-            <Text style={styles.countdownUnit}> minutes </Text>:
-            <Text style={styles.countdownNumber}> {countdown.seconds}</Text>
-            <Text style={styles.countdownUnit}> seconds</Text>
+            <Text> days : </Text>
+            <Text style={styles.countdownNumber}>{countdown.hours}</Text>
+            <Text> hours : </Text>
+            <Text style={styles.countdownNumber}>{countdown.minutes}</Text>
+            <Text> minutes : </Text>
+            <Text style={styles.countdownNumber}>{countdown.seconds}</Text>
+            <Text> seconds</Text>
           </Text>
         </View>
       )}
@@ -201,6 +231,16 @@ const styles = StyleSheet.create({
     backgroundColor: "#F8F6F5",
     alignItems: "center",
     paddingHorizontal: 24,
+  },
+
+  adminButton: {
+    position: "absolute",
+    top: 12,
+    right: 16,
+  },
+
+  adminIcon: {
+    fontSize: 26,
   },
 
   avatarWrapper: {
@@ -247,24 +287,22 @@ const styles = StyleSheet.create({
   },
 
   helloText: {
-    fontFamily: "PlusJakartaSans-Regular",
     fontSize: 36,
   },
 
   nameText: {
-    fontFamily: "PlusJakartaSans-Regular",
     fontSize: 36,
     color: "#931515",
   },
 
   subText: {
     marginTop: 12,
+    maxWidth: 300,
     textAlign: "center",
     fontSize: 14,
-    maxWidth: 300,
+    lineHeight: 18,
   },
 
-  /* BUTTON BASE */
   buttonBase: {
     marginTop: 16,
     width: "100%",
@@ -327,8 +365,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 
-  countdownUnit: {},
-
   logoutButton: {
     marginTop: 40,
   },
@@ -338,3 +374,4 @@ const styles = StyleSheet.create({
     color: "#B00000",
   },
 });
+

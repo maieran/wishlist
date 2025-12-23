@@ -1,7 +1,12 @@
 // src/api/api.ts
 import * as SecureStore from "expo-secure-store";
 
-export const API_BASE = "http://192.168.178.28:8080";
+
+export const API_BASE = process.env.EXPO_PUBLIC_API_BASE as string;
+
+if (!API_BASE) {
+  throw new Error("EXPO_PUBLIC_API_BASE ist nicht gesetzt");
+}
 
 export class ApiError extends Error {
   status: number;

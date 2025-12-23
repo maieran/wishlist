@@ -27,7 +27,7 @@ public class AdminUserService {
         user.setDisplayName(req.displayName());
         user.setAdmin(req.admin());
         user.setPasswordHash(passwordEncoder.encode(req.password()));
-        user.setAvatarUrl("/avatars/default-avatar.png");
+        //user.setAvatarUrl("/avatars/default-avatar.png");
 
         return userRepository.save(user);
     }

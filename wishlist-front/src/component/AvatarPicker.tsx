@@ -1,13 +1,16 @@
 import React from "react";
 import { View, Image, TouchableOpacity, Text } from "react-native";
-import { resolveUserAvatar } from "../utils/avatar";
 
 export default function AvatarPicker({ avatarUrl, size = 130, onPress }: any) {
+  const source = avatarUrl
+    ? { uri: avatarUrl }
+    : require("../../assets/images/kitty-in-present.png");
+
   return (
     <View style={{ alignItems: "center" }}>
       <TouchableOpacity onPress={onPress} activeOpacity={0.85}>
         <Image
-          source={{ uri: resolveUserAvatar(avatarUrl) }}
+          source={source}
           style={{
             width: size,
             height: size,
@@ -17,7 +20,7 @@ export default function AvatarPicker({ avatarUrl, size = 130, onPress }: any) {
           }}
         />
 
-        {/* Badge oben rechts */}
+        {/* + Badge */}
         <View
           style={{
             position: "absolute",
