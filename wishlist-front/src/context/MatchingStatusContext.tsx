@@ -1,9 +1,35 @@
 // src/context/MatchingStatusContext.tsx
-import React, { createContext, useEffect, useState, useRef } from "react";
+import React, { createContext, useEffect, useRef, useState } from "react";
 import { apiGet } from "../api/api";
+import { apiGetMatchingStatus } from "../api/matching";
 import * as SecureStore from "expo-secure-store";
 
 export const MatchingStatusContext = createContext<any>(null);
+
+function pad2(n: number) {
+  return String(n).padStart(2, "0");
+}
+
+function computeCountdown(targetIso: string | null) {
+  if (!targetIso) return null;
+
+  const target = new Date(targetIso).getTime();
+  const now = Date.now();
+  const diffSeconds = Math.max(Math.floor((target - now) / 1000), 0);
+
+  const days = Math.floor(diffSeconds / 86400);
+  const hours = Math.floor((diffSeconds % 86400) / 3600);
+  const minutes = Math.floor((diffSeconds % 3600) / 60);
+  const seconds = diffSeconds % 60;
+
+  return {
+    days: pad2(days),
+    hours: pad2(hours),
+    minutes: pad2(minutes),
+    seconds: pad2(seconds),
+    isZero: diffSeconds === 0,
+  };
+}
 
 export function MatchingStatusProvider({ children }: any) {
   const [loading, setLoading] = useState(true);
@@ -16,53 +42,25 @@ export function MatchingStatusProvider({ children }: any) {
   const [activeTeamId, setActiveTeamId] = useState<number | null>(null);
   const [activeTeamName, setActiveTeamName] = useState("");
 
-  const [scheduledDate, setScheduledDate] = useState<string | null>(null);
-  const [lastRunAt, setLastRunAt] = useState<string | null>(null);
-
+  // Matching Status (pro Team)
+  const [matchDate, setMatchDate] = useState<string | null>(null);
   const [executed, setExecuted] = useState(false);
   const [dirty, setDirty] = useState(false);
+  const [lastRunAt, setLastRunAt] = useState<string | null>(null);
   const [hasPartner, setHasPartner] = useState(false);
 
-  const [countdownText, setCountdownText] = useState("");
+  // Countdown Cache
+  const [countdown, setCountdown] = useState<any>(null);
 
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
-  // ------------------------------------------------
-  // 📅 EFFECTIVE DATE (NUR für Team-Mitglieder!)
-  // ------------------------------------------------
-  const effectiveDate =
-    activeTeamId && scheduledDate
-      ? scheduledDate
-      : activeTeamId && hasPartner
-      ? lastRunAt
-      : null;
+  const calendarDate = matchDate ? matchDate.slice(0, 10) : null; // yyyy-mm-dd für Calendar
 
-  const effectiveDateISO = effectiveDate
-    ? new Date(effectiveDate).toISOString().slice(0, 10)
-    : null;
+  const hasActiveMatching = !!matchDate && executed === false;
 
-  const effectiveDatePretty = effectiveDate
-    ? new Date(effectiveDate).toLocaleDateString("de-DE", {
-        weekday: "long",
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-      })
-    : "";
-
-  const effectiveWeekday = effectiveDate
-    ? new Date(effectiveDate).toLocaleDateString("de-DE", {
-        weekday: "long",
-      })
-    : "";
-
-  // ------------------------------------------------
-  // 🔄 LOAD STATUS (Single Source of Truth)
-  // ------------------------------------------------
   async function loadStatus(isPoll = false) {
     try {
-      if (isPoll) setIsPolling(true);
-      else setLoading(true);
+      isPoll ? setIsPolling(true) : setLoading(true);
 
       const me = await apiGet("/api/auth/me");
       if (!me) return;
@@ -74,35 +72,28 @@ export function MatchingStatusProvider({ children }: any) {
       const teamId = me.activeTeamId ?? null;
       setActiveTeamId(teamId);
 
-      // ❌ KEIN TEAM → KEIN MATCHING, KEIN COUNTDOWN
       if (!teamId) {
         setActiveTeamName("");
-        setScheduledDate(null);
-        setLastRunAt(null);
+        setMatchDate(null);
         setExecuted(false);
         setDirty(false);
+        setLastRunAt(null);
         setHasPartner(false);
-        setCountdownText("");
+        setCountdown(null);
         return;
       }
 
-      // ✅ TEAMDATEN
       const team = await apiGet(`/api/team/me?teamId=${teamId}`);
       setActiveTeamName(team?.name ?? "");
 
-      // ✅ MATCHING-STATUS
-      const status = await apiGet("/api/matching/status");
+      const status = await apiGetMatchingStatus(teamId);
 
-      setScheduledDate(status.matchDate ?? null);
+      setMatchDate(status.matchDate ?? null);
       setExecuted(status.executed === true);
       setDirty(status.dirty === true);
+      setLastRunAt(status.lastRunAt ?? null);
+      setHasPartner(status.hasPartner === true);
 
-      // lastRunAt nur anzeigen, wenn Matching tatsächlich genutzt wurde
-      setLastRunAt(status.hasPartner ? status.lastRunAt ?? null : null);
-
-      // ✅ PARTNER nur für Team-Mitglieder
-      const partnerRes = await apiGet(`/api/matching/me?teamId=${teamId}`);
-      setHasPartner(partnerRes?.found === true);
     } catch (e) {
       console.log("MatchingStatusContext error", e);
     } finally {
@@ -111,36 +102,7 @@ export function MatchingStatusProvider({ children }: any) {
     }
   }
 
-  // ------------------------------------------------
-  // ⏳ COUNTDOWN – NUR WENN TEAM + MATCHING
-  // ------------------------------------------------
-  useEffect(() => {
-    if (!activeTeamId || !scheduledDate) {
-      setCountdownText("");
-      return;
-    }
-
-    const id = setInterval(() => {
-      const diff = new Date(scheduledDate).getTime() - Date.now();
-
-      if (diff <= 0) {
-        setCountdownText("Matching wird ausgeführt …");
-        return;
-      }
-
-      const h = Math.floor(diff / 3600000);
-      const m = Math.floor((diff % 3600000) / 60000);
-      const s = Math.floor((diff % 60000) / 1000);
-
-      setCountdownText(`${h}h ${m}m ${s}s`);
-    }, 1000);
-
-    return () => clearInterval(id);
-  }, [scheduledDate, activeTeamId]);
-
-  // ------------------------------------------------
-  // 🔁 INITIAL LOAD + POLLING
-  // ------------------------------------------------
+  // Polling
   useEffect(() => {
     loadStatus(false);
 
@@ -152,6 +114,23 @@ export function MatchingStatusProvider({ children }: any) {
       if (pollingRef.current) clearInterval(pollingRef.current);
     };
   }, []);
+
+  // Countdown tick (nur wenn active matching)
+  useEffect(() => {
+    if (!hasActiveMatching) {
+      setCountdown(null);
+      return;
+    }
+
+    const id = setInterval(() => {
+      setCountdown(computeCountdown(matchDate));
+    }, 1000);
+
+    // initial sofort
+    setCountdown(computeCountdown(matchDate));
+
+    return () => clearInterval(id);
+  }, [hasActiveMatching, matchDate]);
 
   return (
     <MatchingStatusContext.Provider
@@ -166,17 +145,15 @@ export function MatchingStatusProvider({ children }: any) {
         activeTeamId,
         activeTeamName,
 
-        scheduledDate,
-        lastRunAt,
+        matchDate,
+        calendarDate,
         executed,
         dirty,
-
-        effectiveDateISO,
-        effectiveDatePretty,
-        effectiveWeekday,
-
+        lastRunAt,
         hasPartner,
-        countdownText,
+
+        hasActiveMatching,
+        countdown,
 
         refresh: () => loadStatus(false),
 

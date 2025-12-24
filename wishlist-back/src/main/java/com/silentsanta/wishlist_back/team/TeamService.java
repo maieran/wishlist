@@ -1,5 +1,6 @@
 package com.silentsanta.wishlist_back.team;
 
+import com.silentsanta.wishlist_back.matching.MatchingConfig;
 import com.silentsanta.wishlist_back.matching.MatchingConfigRepository;
 import com.silentsanta.wishlist_back.shared.ApiException;
 import com.silentsanta.wishlist_back.user.UserEntity;
@@ -24,18 +25,29 @@ public class TeamService {
     public TeamEntity createTeam(String name) {
         UserEntity owner = userService.getAuthenticatedUser();
 
+        if (!owner.isAdmin()) {
+            throw new ApiException(403, "Nur Admins dürfen Teams erstellen.");
+        }
+
         TeamEntity team = new TeamEntity();
         team.setName(name);
         team.setOwner(owner);
-        team.setInviteCode(UUID.randomUUID().toString().substring(0, 8).toUpperCase());
+        team.setInviteCode(UUID.randomUUID().toString().substring(0, 4).toUpperCase());
 
-        teamRepository.save(team);
+        teamRepository.save(team); // 🟢 teamId existiert jetzt
 
         // Owner ist Mitglied
         TeamMemberEntity member = new TeamMemberEntity();
         member.setTeam(team);
         member.setUser(owner);
         teamMemberRepository.save(member);
+
+        // 🔥 MatchingConfig für dieses Team anlegen
+        MatchingConfig cfg = new MatchingConfig();
+        cfg.setTeamId(team.getId());
+        cfg.setDirty(true);          // Teamänderung → Matching veraltet
+        cfg.setExecuted(false);
+        matchingConfigRepository.save(cfg);
 
         // falls kein activeTeam gesetzt → dieses Team aktiv machen
         if (owner.getActiveTeamId() == null) {
@@ -45,6 +57,7 @@ public class TeamService {
 
         return team;
     }
+
 
     @Transactional
     public TeamEntity joinTeam(String inviteCode) {
@@ -69,7 +82,7 @@ public class TeamService {
             userService.save(user);
         }
 
-        matchingConfigRepository.markDirty();
+        matchingConfigRepository.markDirtyByTeamId(team.getId());
 
         return team;
     }
@@ -101,7 +114,7 @@ public class TeamService {
             user.setActiveTeamId(null);
             userService.save(user);
         }
-        matchingConfigRepository.markDirty();
+        matchingConfigRepository.markDirtyByTeamId(teamId);
     }
 
     @Transactional
@@ -126,7 +139,7 @@ public class TeamService {
             owner.setActiveTeamId(null);
             userService.save(owner);
         }
-        matchingConfigRepository.markDirty();
+        matchingConfigRepository.markDirtyByTeamId(teamId);
     }
 
     @Transactional
@@ -155,7 +168,8 @@ public class TeamService {
 
         memberships.forEach(teamMemberRepository::delete);
 
-        matchingConfigRepository.markDirty();
+        matchingConfigRepository.markDirtyByTeamId(teamId);
+
     }
 
     @Transactional

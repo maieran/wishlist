@@ -83,3 +83,14 @@ export async function apiPost(
 
   return parsed;
 }
+
+// src/api/api.ts (ergänzen)
+export async function apiDelete(path: string) {
+  const token = await SecureStore.getItemAsync("token");
+  const res = await fetch(API_BASE + path, {
+    method: "DELETE",
+    headers: { Authorization: "Bearer " + token },
+  });
+  return res.json().catch(() => ({}));
+}
+

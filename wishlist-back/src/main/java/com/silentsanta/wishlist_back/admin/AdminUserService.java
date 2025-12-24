@@ -2,7 +2,14 @@ package com.silentsanta.wishlist_back.admin;
 
 import com.silentsanta.wishlist_back.user.UserEntity;
 import com.silentsanta.wishlist_back.user.UserRepository;
+
+import jakarta.transaction.Transactional;
+
 import com.silentsanta.wishlist_back.admin.dto.*;
+import com.silentsanta.wishlist_back.matching.MatchingConfigRepository;
+import com.silentsanta.wishlist_back.team.TeamMemberEntity;
+import com.silentsanta.wishlist_back.team.TeamMemberRepository;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -15,6 +22,8 @@ public class AdminUserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final TeamMemberRepository teamMemberRepository;
+    private final MatchingConfigRepository matchingConfigRepository;
 
     public List<UserEntity> getAllUsers() {
         return userRepository.findAll();
@@ -46,7 +55,23 @@ public class AdminUserService {
         return userRepository.save(user);
     }
 
+    @Transactional
     public void deleteUser(Long id) {
-        userRepository.deleteById(id);
+        UserEntity user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        List<TeamMemberEntity> memberships =
+                teamMemberRepository.findByUserId(user.getId());
+
+        for (TeamMemberEntity m : memberships) {
+            Long teamId = m.getTeam().getId();
+            teamMemberRepository.delete(m);
+
+            // 🔥 Team-Matching als veraltet markieren
+            matchingConfigRepository.markDirtyByTeamId(teamId);
+        }
+
+        userRepository.delete(user);
     }
+
 }

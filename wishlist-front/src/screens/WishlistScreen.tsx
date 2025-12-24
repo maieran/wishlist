@@ -20,7 +20,8 @@ import {
 } from "../api/wishlist";
 
 import { apiTeamList } from "../api/team";
-import { apiMatchingConfig } from "../api/matching";
+import { apiGetMatchingStatus } from "../api/matching";
+
 
 type Props = NativeStackScreenProps<RootStackParamList, "Wishlist">;
 
@@ -81,10 +82,10 @@ export default function WishlistScreen({ navigation }: Props) {
 
       setTeamId(active);
 
-      const cfg = await apiMatchingConfig();
-      setMatchingExecuted(!!cfg.executed);
-    }
+      const status = await apiGetMatchingStatus(active);
+      setMatchingExecuted(!!status.executed);
 
+    }
     loadTeam();
   }, []);
 

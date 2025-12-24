@@ -1,5 +1,7 @@
+// src/main/java/com/silentsanta/wishlist_back/matching/MatchingController.java
 package com.silentsanta.wishlist_back.matching;
 
+import com.silentsanta.wishlist_back.matching.dto.PartnerDto;
 import com.silentsanta.wishlist_back.user.UserEntity;
 import com.silentsanta.wishlist_back.user.UserService;
 import lombok.RequiredArgsConstructor;
@@ -8,7 +10,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.Map;
 
 @RestController
@@ -18,152 +19,122 @@ public class MatchingController {
 
     private final MatchingService matchingService;
     private final MatchingConfigRepository matchingConfigRepository;
-    private final MatchingRepository matchingRepository;
     private final UserService userService;
 
-    public record MatchingConfigResponse(LocalDateTime matchDate, boolean executed) {}
-    public record MatchingConfigRequest(LocalDateTime matchDate) {}
     public record MatchingStatusDto(
             LocalDateTime matchDate,
             boolean executed,
+            boolean dirty,
             LocalDateTime lastRunAt,
             boolean hasPartner
     ) {}
 
-    // GET Config
-    @GetMapping("/config")
-    public ResponseEntity<MatchingConfigResponse> getConfig() {
-        MatchingConfig cfg = matchingConfigRepository.findById(1L).orElse(null);
+    // ✅ USER/UI: Status für EIN Team
+    @GetMapping("/status")
+    public ResponseEntity<?> status(@RequestParam Long teamId) {
+        UserEntity me = userService.getAuthenticatedUser();
 
-        if (cfg == null) {
-            return ResponseEntity.ok(new MatchingConfigResponse(null, false));
-        }
+        MatchingConfig cfg = matchingConfigRepository.findByTeamId(teamId).orElse(null);
 
-        return ResponseEntity.ok(
-                new MatchingConfigResponse(cfg.getMatchDate(), cfg.isExecuted())
-        );
+        boolean hasPartner = matchingService.findMyPartner(teamId, me.getId()).isPresent();
+
+        return ResponseEntity.ok(new MatchingStatusDto(
+                cfg != null ? cfg.getMatchDate() : null,
+                cfg != null && cfg.isExecuted(),
+                cfg != null && cfg.isDirty(),
+                cfg != null ? cfg.getLastRunAt() : null,
+                hasPartner
+        ));
     }
 
-        // ADMIN: Datum setzen
+
+    // ✅ USER: Partner (null-safe)
+    @GetMapping("/me")
+    public ResponseEntity<?> myPartner(@RequestParam Long teamId) {
+        UserEntity me = userService.getAuthenticatedUser();
+
+        return matchingService.findMyPartner(teamId, me.getId())
+                .map(u -> ResponseEntity.ok(new PartnerDto(
+                        true,
+                        u.getId(),
+                        u.getDisplayName(),
+                        u.getAvatarUrl(),   // darf null sein -> DTO kann das
+                        null
+                )))
+                .orElse(ResponseEntity.ok(new PartnerDto(
+                        false,
+                        null,
+                        null,
+                        null,
+                        "Kein Partner gefunden"
+                )));
+    }
+
+
+    // ✅ ADMIN: Datum setzen/ändern (pro Team)
+    // Fix #2: Blockt Zeiten, die zu nah oder in der Vergangenheit sind
     @PostMapping("/config")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> setConfig(@RequestBody MatchingConfigRequest req) {
-        MatchingConfig cfg = matchingConfigRepository.findById(1L)
+    public ResponseEntity<?> setConfig(
+            @RequestParam Long teamId,
+            @RequestBody Map<String, String> body
+    ) {
+        String iso = body.get("matchDate");
+        if (iso == null || iso.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "matchDate missing"));
+        }
+
+        LocalDateTime date = LocalDateTime.parse(iso); // ISO LocalDateTime expected: "2025-12-23T10:40:00"
+
+        if (date.isBefore(LocalDateTime.now().plusMinutes(2))) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", "Match date must be at least 2 minutes in the future"
+            ));
+        }
+
+        MatchingConfig cfg = matchingConfigRepository.findByTeamId(teamId)
                 .orElseGet(() -> {
                     MatchingConfig c = new MatchingConfig();
-                    c.setId(1L);
+                    c.setTeamId(teamId);
                     return c;
                 });
 
-        cfg.setMatchDate(req.matchDate());
-        cfg.setExecuted(false);
-        cfg.setDirty(true);
-        matchingConfigRepository.save(cfg);
-
-        return ResponseEntity.ok().build();
-    }
-
-
-    // ADMIN: Matching jetzt ausführen
-    @PostMapping("/run-manual")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> runManual() {
-        matchingService.runManually();
-        return ResponseEntity.ok(Map.of("status", "ok"));
-    }
-
-    @PostMapping("/rerun")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> rerunMatching() {
-        MatchingConfig cfg = matchingConfigRepository.findById(1L)
-                .orElseThrow();
-
-        if (!cfg.isExecuted()) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of("error", "Matching wurde noch nicht ausgeführt"));
-        }
-
-        if (!cfg.isDirty()) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of("error", "Matching ist aktuell, kein Re-Run nötig"));
-        }
-
-        matchingService.runManually(); // nutzt bestehende Logik
-        return ResponseEntity.ok(Map.of("status", "rerun"));
-    }
-
-
-    @PostMapping("/clear")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> clearConfig() {
-        MatchingConfig cfg = matchingConfigRepository.findById(1L)
-            .orElseGet(() -> {
-                MatchingConfig c = new MatchingConfig();
-                c.setId(1L);
-                return c;
-            });
-
-        cfg.setMatchDate(null);
+        cfg.setMatchDate(date);
         cfg.setExecuted(false);
         cfg.setDirty(true);
         cfg.setLastRunAt(null);
 
         matchingConfigRepository.save(cfg);
 
-        return ResponseEntity.ok(Map.of("status", "cleared"));
+        return ResponseEntity.ok(Map.of("status", "saved"));
     }
 
+    // ✅ ADMIN: Löschen (pro Team)
+    @DeleteMapping("/config")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> clear(@RequestParam Long teamId) {
+        matchingConfigRepository.findByTeamId(teamId)
+                .ifPresent(matchingConfigRepository::delete);
 
-    // USER: Partner abrufen
-    @GetMapping("/me")
-    public ResponseEntity<?> myPartner(@RequestParam Long teamId) {
-        UserEntity me = userService.getAuthenticatedUser();
+        // Optional: Zuordnungen löschen (sauber)
+        matchingService.clearAssignmentsForTeam(teamId);
 
-        return matchingService.findMyPartner(teamId, me.getId())
-                .map(u -> ResponseEntity.ok(
-                        Map.of(
-                                "found", true,
-                                "userId", u.getId(),
-                                "displayName", u.getDisplayName(),
-                                "avatarUrl", u.getAvatarUrl()
-                        )
-                ))
-                .orElse(ResponseEntity.ok(
-                        Map.of(
-                                "found", false,
-                                "message", "Kein Partner gefunden"
-                        )
-                ));
+        return ResponseEntity.ok(Map.of("status", "deleted"));
     }
 
-    @GetMapping("/status")
-    public ResponseEntity<MatchingStatusDto> status() {
-        UserEntity me = userService.getAuthenticatedUser();
+    // ✅ ADMIN: Manuell starten (Override)
+    @PostMapping("/run-manual")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> runManual(@RequestParam Long teamId) {
+        matchingService.runManualForTeam(teamId);
+        return ResponseEntity.ok(Map.of("status", "ok"));
+    }
 
-        MatchingConfig cfg = matchingConfigRepository.findById(1L).orElse(null);
-        LocalDateTime matchDate = (cfg != null ? cfg.getMatchDate() : null);
-        boolean executed = (cfg != null && cfg.isExecuted());
-
-        MatchingEntity last = matchingRepository.findTopByOrderByCreatedAtDesc();
-        LocalDateTime lastRunAt = null;
-        if (last != null && last.getCreatedAt() != null) {
-            lastRunAt = LocalDateTime.ofInstant(last.getCreatedAt(), ZoneOffset.UTC);
-        }
-
-        boolean hasPartner = false;
-        if (me.getActiveTeamId() != null) {
-            hasPartner = matchingService
-                    .findMyPartner(me.getActiveTeamId(), me.getId())
-                    .isPresent();
-        }
-
-        MatchingStatusDto dto = new MatchingStatusDto(
-                matchDate,
-                executed,
-                lastRunAt,
-                hasPartner
-        );
-
-        return ResponseEntity.ok(dto);
+    // ✅ ADMIN: Re-Run wenn dirty & executed
+    @PostMapping("/rerun")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> rerun(@RequestParam Long teamId) {
+        matchingService.rerunForTeam(teamId);
+        return ResponseEntity.ok(Map.of("status", "rerun"));
     }
 }

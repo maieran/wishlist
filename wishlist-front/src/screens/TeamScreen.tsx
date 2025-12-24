@@ -3,7 +3,12 @@ import React, { useEffect, useState } from "react";
 import { View, Text, Button, FlatList, Alert, Share } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/types";
-import { apiTeamDetails, apiTeamLeave, apiTeamKick, apiTeamDelete } from "../api/team";
+import {
+  apiTeamDetails,
+  apiTeamLeave,
+  apiTeamKick,
+  apiTeamDelete,
+} from "../api/team";
 import { apiGet } from "../api/api";
 import { useIsFocused } from "@react-navigation/native";
 import * as Clipboard from "expo-clipboard";
@@ -19,43 +24,51 @@ type TeamMember = {
 };
 
 type TeamMeResponse = {
-  id: number;                 // statt teamId
+  id: number;
   name: string;
   inviteCode: string;
-  isOwner: boolean;           // statt owner
+  isOwner: boolean;
   ownerId: number | null;
   members: TeamMember[];
-  teamAvatarUrl?: string;
 };
-
 
 export default function TeamScreen({ navigation }: Props) {
   const [team, setTeam] = useState<TeamMeResponse | null>(null);
   const [hasTeam, setHasTeam] = useState<boolean>(true);
   const [myUserId, setMyUserId] = useState<number | null>(null);
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
+
   const isFocused = useIsFocused();
 
+  // ------------------------------------------------
+  // Header Buttons (Create nur für Admin)
+  // ------------------------------------------------
   React.useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () =>
         !hasTeam ? (
           <View style={{ flexDirection: "row", gap: 10 }}>
-            <Button title="+" onPress={() => navigation.navigate("TeamCreate")} />
-            <Button title="Join" onPress={() => navigation.navigate("TeamJoin")} />
+            {isAdmin && (
+              <Button
+                title="+"
+                onPress={() => navigation.navigate("TeamCreate")}
+              />
+            )}
+            <Button
+              title="Join"
+              onPress={() => navigation.navigate("TeamJoin")}
+            />
           </View>
         ) : null,
     });
-  }, [navigation, hasTeam]);
+  }, [navigation, hasTeam, isAdmin]);
 
+  // ------------------------------------------------
+  // Load Team + User
+  // ------------------------------------------------
   useEffect(() => {
     async function load() {
       const active = await SecureStore.getItemAsync("activeTeamId");
-
-      if (!active) {
-        setTeam(null);
-        setHasTeam(false);
-        return;
-      }
 
       const me = await apiGet("/api/auth/me");
       if (!me) {
@@ -63,13 +76,21 @@ export default function TeamScreen({ navigation }: Props) {
         setTeam(null);
         return;
       }
-      setMyUserId(me.id); // WICHTIG: id, nicht userId!
+
+      setMyUserId(me.id);
+      setIsAdmin(me.admin === true);
+
+      if (!active) {
+        setHasTeam(false);
+        setTeam(null);
+        return;
+      }
 
       try {
         const res = await apiTeamDetails(Number(active));
         setTeam(res);
         setHasTeam(true);
-      } catch (e) {
+      } catch {
         setTeam(null);
         setHasTeam(false);
       }
@@ -78,17 +99,13 @@ export default function TeamScreen({ navigation }: Props) {
     if (isFocused) load();
   }, [isFocused]);
 
-  // … Rest deines Teamscreens UNVERÄNDERT …
-
-
-  // ----------------------------------------------
-  // 🟪 UI Actions
-  // ----------------------------------------------
-
+  // ------------------------------------------------
+  // Actions
+  // ------------------------------------------------
   async function copyInviteCode() {
     if (!team) return;
     await Clipboard.setStringAsync(team.inviteCode);
-    Alert.alert("Kopiert", "Der Einladungscode wurde in die Zwischenablage kopiert.");
+    Alert.alert("Kopiert", "Der Einladungscode wurde kopiert.");
   }
 
   async function shareInviteCode() {
@@ -111,17 +128,25 @@ export default function TeamScreen({ navigation }: Props) {
     try {
       await apiTeamKick(team.id, userId);
       await refreshTeam();
-      Alert.alert("Erfolgreich", "Mitglied wurde entfernt.");
+      Alert.alert("Erfolg", "Mitglied wurde entfernt.");
     } catch (err: any) {
       Alert.alert("Fehler", err.message || "Kick fehlgeschlagen.");
     }
   }
 
   function confirmKick(userId: number, displayName: string) {
-    Alert.alert("Mitglied entfernen", `Willst du ${displayName} wirklich entfernen?`, [
-      { text: "Abbrechen", style: "cancel" },
-      { text: "Entfernen", style: "destructive", onPress: () => onKick(userId) },
-    ]);
+    Alert.alert(
+      "Mitglied entfernen",
+      `Willst du ${displayName} wirklich entfernen?`,
+      [
+        { text: "Abbrechen", style: "cancel" },
+        {
+          text: "Entfernen",
+          style: "destructive",
+          onPress: () => onKick(userId),
+        },
+      ]
+    );
   }
 
   async function onDeleteTeam() {
@@ -139,10 +164,10 @@ export default function TeamScreen({ navigation }: Props) {
             try {
               await apiTeamDelete(team.id);
               await SecureStore.deleteItemAsync("activeTeamId");
-              Alert.alert("Gelöscht", "Team wurde erfolgreich gelöscht.");
+              Alert.alert("Gelöscht", "Team wurde gelöscht.");
               navigation.navigate("TeamList");
             } catch (err: any) {
-              Alert.alert("Fehler", err.message || "Team konnte nicht gelöscht werden.");
+              Alert.alert("Fehler", err.message || "Löschen fehlgeschlagen.");
             }
           },
         },
@@ -156,23 +181,27 @@ export default function TeamScreen({ navigation }: Props) {
     try {
       await apiTeamLeave(team.id);
       await SecureStore.deleteItemAsync("activeTeamId");
-
       Alert.alert("Team verlassen", "Du hast das Team verlassen.", [
         { text: "OK", onPress: () => navigation.navigate("TeamList") },
       ]);
     } catch (err: any) {
-      Alert.alert("Fehler", err.message || "Team konnte nicht verlassen werden.");
+      Alert.alert("Fehler", err.message || "Verlassen fehlgeschlagen.");
     }
   }
 
-  // ----------------------------------------------
-  // 🟨 UI Rendering
-  // ----------------------------------------------
+  // ------------------------------------------------
+  // UI
+  // ------------------------------------------------
   if (!hasTeam) {
     return (
       <SafeAreaView style={{ padding: 20 }}>
-        <Text style={{ marginBottom: 10 }}>Kein aktives Team ausgewählt.</Text>
-        <Button title="Meine Teams" onPress={() => navigation.navigate("TeamList")} />
+        <Text style={{ marginBottom: 10 }}>
+          Kein aktives Team ausgewählt.
+        </Text>
+        <Button
+          title="Meine Teams"
+          onPress={() => navigation.navigate("TeamList")}
+        />
       </SafeAreaView>
     );
   }
@@ -183,12 +212,10 @@ export default function TeamScreen({ navigation }: Props) {
 
   return (
     <SafeAreaView style={{ padding: 20 }}>
-      {/* Team Name */}
       <Text style={{ fontSize: 24, fontWeight: "600", marginBottom: 10 }}>
         {team.name}
       </Text>
 
-      {/* Invite Code */}
       <Text style={{ fontSize: 16, marginBottom: 6 }}>
         Einladungscode: {team.inviteCode}
       </Text>
@@ -198,7 +225,6 @@ export default function TeamScreen({ navigation }: Props) {
         <Button title="Teilen" onPress={shareInviteCode} />
       </View>
 
-      {/* Mitglieder */}
       <Text style={{ fontSize: 18, fontWeight: "500", marginBottom: 6 }}>
         Mitglieder
       </Text>
@@ -215,33 +241,33 @@ export default function TeamScreen({ navigation }: Props) {
               paddingVertical: 6,
             }}
           >
-            <Text style={{ fontSize: 16 }}>
+            <Text>
               {item.displayName} ({item.username})
             </Text>
 
             {item.userId === team.ownerId && (
-              <Text style={{ color: "gold", fontWeight: "bold" }}>👑 Owner</Text>
+              <Text style={{ color: "gold" }}>👑 Owner</Text>
             )}
 
             {team.isOwner && item.userId !== myUserId && (
               <Button
                 title="Kick"
                 color="red"
-                onPress={() => confirmKick(item.userId, item.displayName)}
+                onPress={() =>
+                  confirmKick(item.userId, item.displayName)
+                }
               />
             )}
           </View>
         )}
       />
 
-      {/* Leave */}
       {!team.isOwner && (
         <View style={{ marginTop: 20 }}>
           <Button title="Team verlassen" color="red" onPress={onLeave} />
         </View>
       )}
 
-      {/* Delete (nur Owner) */}
       {team.isOwner && (
         <View style={{ marginTop: 20 }}>
           <Button title="Team löschen" color="red" onPress={onDeleteTeam} />

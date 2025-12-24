@@ -1,3 +1,4 @@
+// src/main/java/com/silentsanta/wishlist_back/matching/MatchingService.java
 package com.silentsanta.wishlist_back.matching;
 
 import com.silentsanta.wishlist_back.team.TeamEntity;
@@ -30,21 +31,37 @@ public class MatchingService {
     private final MatchingConfigRepository matchingConfigRepository;
     private final UserService userService;
 
-    // ────────── Matching für EIN Team erzeugen ──────────
+    // ──────────────────────────────────────────────
+    // Partner eines Users in einem Team
+    // ──────────────────────────────────────────────
+    public Optional<UserEntity> findMyPartner(Long teamId, Long userId) {
+        return matchAssignmentRepository
+                .findByMatching_Team_IdAndGiver_Id(teamId, userId)
+                .map(MatchAssignmentEntity::getReceiver);
+    }
+
+    // ──────────────────────────────────────────────
+    // Assignments für Team löschen (bei Config delete)
+    // ──────────────────────────────────────────────
     @Transactional
-    public void createMatchingForTeam(Long teamId) {
-
-        List<TeamMemberEntity> members = teamMemberRepository.findByTeamId(teamId);
-
-        // Zu wenige Leute → kein Matching
-        if (members.size() < 2) return;
-
-        // ALTE Zuordnungen für dieses Team löschen
+    public void clearAssignmentsForTeam(Long teamId) {
         List<MatchAssignmentEntity> oldAssignments =
                 matchAssignmentRepository.findByMatching_Team_Id(teamId);
         if (!oldAssignments.isEmpty()) {
             matchAssignmentRepository.deleteAll(oldAssignments);
         }
+    }
+
+    // ──────────────────────────────────────────────
+    // Matching für EIN Team erzeugen
+    // ──────────────────────────────────────────────
+    @Transactional
+    public void createMatchingForTeam(Long teamId) {
+
+        List<TeamMemberEntity> members = teamMemberRepository.findByTeamId(teamId);
+        if (members.size() < 2) return;
+
+        clearAssignmentsForTeam(teamId);
 
         List<Long> userIds = members.stream()
                 .map(m -> m.getUser().getId())
@@ -71,134 +88,94 @@ public class MatchingService {
         });
     }
 
-    // ────────── Partner eines Users in einem Team ──────────
-    public Optional<UserEntity> findMyPartner(Long teamId, Long userId) {
-        return matchAssignmentRepository
-                .findByMatching_Team_IdAndGiver_Id(teamId, userId)
-                .map(MatchAssignmentEntity::getReceiver);
-    }
-
-    // ────────── AUTOMATISCHER CRON JOB ──────────
-    @Scheduled(fixedRate = 60000) // alle 60 Sekunden
+    // ──────────────────────────────────────────────
+    // Admin: Manual Override für Team
+    // ──────────────────────────────────────────────
     @Transactional
-    public void checkAndRunMatching() {
-
-        MatchingConfig cfg = matchingConfigRepository.findById(1L).orElse(null);
-        if (cfg == null) return;
-        if (cfg.getMatchDate() == null) return;
-
-        // Noch nicht Zeit? → Abbruch
-        /*
-        if (LocalDateTime.now().isBefore(cfg.getMatchDate())) {
-            return;
-        } */
-        if (!cfg.isDirty()) return;
-        if (LocalDateTime.now().isBefore(cfg.getMatchDate())) return;
-
-
-        // Zeitpunkt erreicht → Matching ausführen
-        runSilentSantaMatching();
-    }
-
-    // ────────── MATCHING AUSFÜHREN ──────────
-    @Transactional
-    public void runSilentSantaMatching() {
-
-        MatchingConfig cfg = matchingConfigRepository.findById(1L)
+    public void runManualForTeam(Long teamId) {
+        MatchingConfig cfg = matchingConfigRepository.findByTeamId(teamId)
                 .orElseGet(() -> {
                     MatchingConfig c = new MatchingConfig();
-                    c.setId(1L);
+                    c.setTeamId(teamId);
                     return c;
                 });
 
-        boolean anyExecuted = false;
+        createMatchingForTeam(teamId);
 
+        cfg.setExecuted(true);
+        cfg.setDirty(false);
+        cfg.setLastRunAt(LocalDateTime.now());
+        matchingConfigRepository.save(cfg);
+    }
+
+    // ──────────────────────────────────────────────
+    // Admin: Rerun (nur wenn executed + dirty)
+    // ──────────────────────────────────────────────
+    @Transactional
+    public void rerunForTeam(Long teamId) {
+        MatchingConfig cfg = matchingConfigRepository.findByTeamId(teamId)
+                .orElseThrow(() -> new RuntimeException("No config for team"));
+
+        if (!cfg.isExecuted()) throw new RuntimeException("Not executed yet");
+        if (!cfg.isDirty()) throw new RuntimeException("Not dirty");
+
+        createMatchingForTeam(teamId);
+
+        cfg.setExecuted(true);
+        cfg.setDirty(false);
+        cfg.setLastRunAt(LocalDateTime.now());
+        matchingConfigRepository.save(cfg);
+    }
+
+    // ──────────────────────────────────────────────
+    // Scheduler: checkt ALLE Teams, aber führt pro Team aus
+    // ──────────────────────────────────────────────
+    @Scheduled(fixedRate = 60000)
+    @Transactional
+    public void checkAndRunMatching() {
         List<TeamEntity> teams = teamRepository.findAll();
-        for (TeamEntity team : teams) {
-            List<TeamMemberEntity> members = teamMemberRepository.findByTeamId(team.getId());
-            if (members.size() >= 2) {
-                createMatchingForTeam(team.getId());
-                anyExecuted = true;
-            }
-        }
 
-        if (anyExecuted) {
-            cfg.setDirty(false);
+        for (TeamEntity team : teams) {
+            Long teamId = team.getId();
+
+            MatchingConfig cfg = matchingConfigRepository.findByTeamId(teamId).orElse(null);
+            if (cfg == null) continue;
+            if (cfg.getMatchDate() == null) continue;
+            if (cfg.isExecuted()) continue;
+
+            // Nur ausführen wenn Zeit erreicht
+            if (LocalDateTime.now().isBefore(cfg.getMatchDate())) continue;
+
+            // Ausführen
+            createMatchingForTeam(teamId);
+
             cfg.setExecuted(true);
+            cfg.setDirty(false);
             cfg.setLastRunAt(LocalDateTime.now());
             matchingConfigRepository.save(cfg);
         }
     }
 
-
-    // ────────── MANUELLER START durch Admin ──────────
-    @Transactional
-    public void runManually() {
-
-        MatchingConfig cfg = matchingConfigRepository.findById(1L)
-                .orElseGet(() -> {
-                    MatchingConfig config = new MatchingConfig();
-                    config.setId(1L);
-                    return config;
-                });
-
-        // Manuell erzwingt neues Matching
-        cfg.setExecuted(false);
-        cfg.setDirty(false);
-        matchingConfigRepository.save(cfg);
-
-        runSilentSantaMatching();
-    }
-
-
-        // Holt oder erzeugt MatchingConfig
-    public MatchingConfig getConfig() {
-        return matchingConfigRepository.findById(1L).orElseGet(() -> {
-            MatchingConfig cfg = new MatchingConfig();
-            matchingConfigRepository.save(cfg);
-            return cfg;
-        });
-    }
-
-    public Map<String, Object> getMatchingStatus() {
-
-        MatchingConfig cfg = getConfig();
-
-        return Map.of(
-            "scheduledDate", cfg.getMatchDate(),
-            "executed", cfg.isExecuted(),
-            "dirty", cfg.isDirty(),
-            "lastRunAt", cfg.getLastRunAt()
-        );
-    }
-
-    public void scheduleMatch(LocalDateTime date) {
-        MatchingConfig cfg = getConfig();
-        cfg.setMatchDate(date);
-        cfg.setExecuted(false);
-        cfg.setDirty(true); // ✔️ Matching soll laufen
-        matchingConfigRepository.save(cfg);
-    }
-
-
-    public void markExecuted() {
-        MatchingConfig cfg = getConfig();
-        cfg.setExecuted(true);
-        cfg.setLastRunAt(LocalDateTime.now());
-        matchingConfigRepository.save(cfg);
-    }
-
     public Map<String, Object> getMatchingStatusForTeam(Long teamId) {
 
-        MatchingConfig cfg = getConfig();
+        MatchingConfig cfg = matchingConfigRepository
+                .findByTeamId(teamId)
+                .orElse(null);
 
         Map<String, Object> result = new HashMap<>();
-        result.put("scheduledDate", cfg.getMatchDate());   // darf null sein
+
+        if (cfg == null) {
+            result.put("scheduledDate", null);
+            result.put("executed", false);
+            result.put("lastRunAt", null);
+            return result;
+        }
+
+        result.put("scheduledDate", cfg.getMatchDate());
         result.put("executed", cfg.isExecuted());
-        result.put("lastRunAt", cfg.getLastRunAt());       // darf null sein
+        result.put("lastRunAt", cfg.getLastRunAt());
 
         return result;
     }
-
 
 }

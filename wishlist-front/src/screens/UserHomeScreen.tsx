@@ -1,21 +1,8 @@
 // src/screens/UserHomeScreen.tsx
-import React, {
-  useContext,
-  useMemo,
-  useEffect,
-  useRef,
-} from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Image,
-  Alert,
-} from "react-native";
+import React, { useContext } from "react";
+import { View, Text, StyleSheet, TouchableOpacity, Image, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
-
 import { MatchingStatusContext } from "../context/MatchingStatusContext";
 import { apiUploadAvatar } from "../api/user";
 
@@ -23,15 +10,13 @@ export default function UserHomeScreen({ navigation }: any) {
   const {
     userDisplayName,
     avatarUrl,
-    hasPartner,
     isAdmin,
-    scheduledDate,
-    effectiveDateISO,
+    hasPartner,
+    hasActiveMatching,
+    countdown,
     logout,
     refresh,
   } = useContext(MatchingStatusContext);
-
-  /* ================= AVATAR ================= */
 
   const handleChangeAvatar = async () => {
     const res = await ImagePicker.launchImageLibraryAsync({
@@ -50,55 +35,6 @@ export default function UserHomeScreen({ navigation }: any) {
     }
   };
 
-  /* ================= COUNTDOWN ================= */
-
-  function formatCountdown(totalSeconds: number) {
-    const days = Math.floor(totalSeconds / 86400);
-    const hours = Math.floor((totalSeconds % 86400) / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const seconds = totalSeconds % 60;
-
-    const pad = (n: number) => String(n).padStart(2, "0");
-
-    return {
-      days: pad(days),
-      hours: pad(hours),
-      minutes: pad(minutes),
-      seconds: pad(seconds),
-    };
-  }
-
-  const countdown = useMemo(() => {
-    if (!scheduledDate || !effectiveDateISO) return null;
-
-    const target = new Date(effectiveDateISO).getTime();
-    const now = Date.now();
-    const diffSeconds = Math.max(Math.floor((target - now) / 1000), 0);
-
-    return formatCountdown(diffSeconds);
-  }, [scheduledDate, effectiveDateISO]);
-
-  /* ================= AUTO REFRESH NACH MATCHING ================= */
-
-  const refreshedAfterZero = useRef(false);
-
-  useEffect(() => {
-    if (!countdown) return;
-
-    const isZero =
-      countdown.days === "00" &&
-      countdown.hours === "00" &&
-      countdown.minutes === "00" &&
-      countdown.seconds === "00";
-
-    if (isZero && !refreshedAfterZero.current) {
-      refreshedAfterZero.current = true;
-      refresh(); // 🔥 holt hasPartner + Partnerdaten neu
-    }
-  }, [countdown, refresh]);
-
-  /* ================= LOGOUT ================= */
-
   const confirmLogout = () => {
     Alert.alert("Logout", "Do you really want to log out?", [
       { text: "Cancel", style: "cancel" },
@@ -107,16 +43,11 @@ export default function UserHomeScreen({ navigation }: any) {
         style: "destructive",
         onPress: async () => {
           await logout();
-          navigation.reset({
-            index: 0,
-            routes: [{ name: "Landing" }],
-          });
+          navigation.reset({ index: 0, routes: [{ name: "Landing" }] });
         },
       },
     ]);
   };
-
-  /* ================= UI ================= */
 
   return (
     <SafeAreaView style={styles.container}>
@@ -165,9 +96,7 @@ export default function UserHomeScreen({ navigation }: any) {
           style={styles.primaryButton}
           onPress={() => navigation.navigate("MyPartner")}
         >
-          <Text style={styles.primaryButtonText}>
-            🎁 Show my gift recipient
-          </Text>
+          <Text style={styles.primaryButtonText}>🎁 Show my gift recipient</Text>
         </TouchableOpacity>
       )}
 
@@ -195,13 +124,10 @@ export default function UserHomeScreen({ navigation }: any) {
         <Text style={styles.secondaryButtonText}>My teams</Text>
       </TouchableOpacity>
 
-      {/* COUNTDOWN */}
-      {countdown && !hasPartner && (
+      {/* COUNTDOWN (nur wenn Matching aktiv und noch nicht executed) */}
+      {hasActiveMatching && !hasPartner && countdown && (
         <View style={styles.countdownWrapper}>
-          <Text style={styles.countdownLabel}>
-            Remaining time until matching:
-          </Text>
-
+          <Text style={styles.countdownLabel}>Remaining time until matching:</Text>
           <Text style={styles.countdownLine}>
             <Text style={styles.countdownNumber}>{countdown.days}</Text>
             <Text> days : </Text>
@@ -223,46 +149,15 @@ export default function UserHomeScreen({ navigation }: any) {
   );
 }
 
-/* ================= STYLES ================= */
-
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#F8F6F5",
-    alignItems: "center",
-    paddingHorizontal: 24,
-  },
+  container: { flex: 1, backgroundColor: "#F8F6F5", alignItems: "center", paddingHorizontal: 24 },
 
-  adminButton: {
-    position: "absolute",
-    top: 12,
-    right: 16,
-  },
+  adminButton: { position: "absolute", top: 12, right: 16 },
+  adminIcon: { fontSize: 26 },
 
-  adminIcon: {
-    fontSize: 26,
-  },
-
-  avatarWrapper: {
-    marginTop: 60,
-    width: 182,
-    height: 182,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  avatarCircle: {
-    width: 182,
-    height: 182,
-    borderRadius: 91,
-    backgroundColor: "#FFF",
-    overflow: "hidden",
-  },
-
-  avatarImage: {
-    width: "100%",
-    height: "100%",
-  },
+  avatarWrapper: { marginTop: 60, width: 182, height: 182, justifyContent: "center", alignItems: "center" },
+  avatarCircle: { width: 182, height: 182, borderRadius: 91, backgroundColor: "#FFF", overflow: "hidden" },
+  avatarImage: { width: "100%", height: "100%" },
 
   addButton: {
     position: "absolute",
@@ -275,42 +170,15 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  addButtonText: { color: "#FFF", fontSize: 22 },
 
-  addButtonText: {
-    color: "#FFF",
-    fontSize: 22,
-  },
+  helloWrapper: { flexDirection: "row", marginTop: 24 },
+  helloText: { fontSize: 36 },
+  nameText: { fontSize: 36, color: "#931515" },
 
-  helloWrapper: {
-    flexDirection: "row",
-    marginTop: 24,
-  },
+  subText: { marginTop: 12, maxWidth: 300, textAlign: "center", fontSize: 14, lineHeight: 18 },
 
-  helloText: {
-    fontSize: 36,
-  },
-
-  nameText: {
-    fontSize: 36,
-    color: "#931515",
-  },
-
-  subText: {
-    marginTop: 12,
-    maxWidth: 300,
-    textAlign: "center",
-    fontSize: 14,
-    lineHeight: 18,
-  },
-
-  buttonBase: {
-    marginTop: 16,
-    width: "100%",
-    height: 50,
-    borderRadius: 36,
-    justifyContent: "center",
-    alignItems: "center",
-  },
+  buttonBase: { marginTop: 16, width: "100%", height: 50, borderRadius: 36, justifyContent: "center", alignItems: "center" },
 
   primaryButton: {
     marginTop: 16,
@@ -321,57 +189,19 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  primaryButtonText: { fontSize: 24, color: "#FFF" },
 
-  primaryButtonText: {
-    fontSize: 24,
-    color: "#FFF",
-  },
+  outlineButton: { borderWidth: 1, borderColor: "#931515" },
+  outlineButtonText: { fontSize: 24, color: "#931515" },
 
-  outlineButton: {
-    borderWidth: 1,
-    borderColor: "#931515",
-  },
+  secondaryButton: { backgroundColor: "#EFECEC" },
+  secondaryButtonText: { fontSize: 24, color: "#2B2B2B" },
 
-  outlineButtonText: {
-    fontSize: 24,
-    color: "#931515",
-  },
+  countdownWrapper: { marginTop: 32, alignItems: "center" },
+  countdownLabel: { fontSize: 14, marginBottom: 6 },
+  countdownLine: { fontSize: 14, color: "#931515" },
+  countdownNumber: { fontWeight: "600" },
 
-  secondaryButton: {
-    backgroundColor: "#EFECEC",
-  },
-
-  secondaryButtonText: {
-    fontSize: 24,
-    color: "#2B2B2B",
-  },
-
-  countdownWrapper: {
-    marginTop: 32,
-    alignItems: "center",
-  },
-
-  countdownLabel: {
-    fontSize: 14,
-    marginBottom: 6,
-  },
-
-  countdownLine: {
-    fontSize: 14,
-    color: "#931515",
-  },
-
-  countdownNumber: {
-    fontWeight: "600",
-  },
-
-  logoutButton: {
-    marginTop: 40,
-  },
-
-  logoutText: {
-    fontSize: 18,
-    color: "#B00000",
-  },
+  logoutButton: { marginTop: 40 },
+  logoutText: { fontSize: 18, color: "#B00000" },
 });
-

@@ -1,12 +1,6 @@
 // src/screens/BetweenScreen.tsx
-import React, { useContext, useMemo, useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ActivityIndicator,
-} from "react-native";
+import React, { useContext, useEffect, useState } from "react";
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
 import { Calendar } from "react-native-calendars";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MatchingStatusContext } from "../context/MatchingStatusContext";
@@ -14,32 +8,19 @@ import { MatchingStatusContext } from "../context/MatchingStatusContext";
 export default function BetweenScreen({ navigation }: any) {
   const {
     loading,
-    effectiveDateISO,
     activeTeamName,
+    calendarDate,
+    hasActiveMatching,
+    countdown,
     hasPartner,
-    scheduledDate,
-    executed,
-    countdownText,
   } = useContext(MatchingStatusContext);
-
-  /* ================= LOCAL SYNC SPINNER ================= */
 
   const [showSync, setShowSync] = useState(true);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowSync(false);
-    }, 11000); // 11 Sekunden
-
+    const timer = setTimeout(() => setShowSync(false), 11000);
     return () => clearTimeout(timer);
   }, []);
-
-  /* ================= MATCHING STATE ================= */
-
-  const hasActiveMatching =
-    !!scheduledDate && executed === false && !hasPartner;
-
-  /* ================= LOADING ================= */
 
   if (loading) {
     return (
@@ -49,8 +30,6 @@ export default function BetweenScreen({ navigation }: any) {
       </SafeAreaView>
     );
   }
-
-  /* ================= UI ================= */
 
   return (
     <SafeAreaView style={styles.container}>
@@ -67,51 +46,56 @@ export default function BetweenScreen({ navigation }: any) {
         </View>
       )}
 
-      {/* KEIN MATCHING */}
-      {!hasActiveMatching && !showSync && (
-        <Text style={styles.noMatchingText}>
-          No active matching at the moment.
-        </Text>
-      )}
-
-      {/* MATCHING AKTIV */}
-      {hasActiveMatching && effectiveDateISO && !showSync && (
+      {/* CONTENT erst nach Sync */}
+      {!showSync && (
         <>
-          {/* CALENDAR */}
-          <View style={styles.calendarCard}>
-            <Calendar
-              current={effectiveDateISO}
-              markingType="custom"
-              markedDates={{
-                [effectiveDateISO]: {
-                  customStyles: {
-                    container: styles.selectedDay,
-                    text: styles.selectedDayText,
-                  },
-                },
-              }}
-              theme={{
-                textDayFontFamily: "PlusJakartaSans-Regular",
-                textMonthFontFamily: "PlusJakartaSans-Regular",
-                textDayHeaderFontFamily: "PlusJakartaSans-Regular",
-                monthTextColor: "#4A4A4A",
-                arrowColor: "#4A4A4A",
-              }}
-            />
-          </View>
-
-          {/* TEAM NAME */}
-          {activeTeamName && (
-            <Text style={styles.teamName}>{activeTeamName}</Text>
+          {!hasActiveMatching && (
+            <Text style={styles.noMatchingText}>
+              No active matching for the selected team.
+            </Text>
           )}
 
-          {/* COUNTDOWN */}
-          <View style={styles.countdownWrapper}>
-            <Text style={styles.countdownLabel}>
-              Remaining time until matching:
-            </Text>
-            <Text style={styles.countdownLine}>{countdownText}</Text>
-          </View>
+          {hasActiveMatching && calendarDate && countdown && (
+            <>
+              <View style={styles.calendarCard}>
+                <Calendar
+                  current={calendarDate}
+                  markingType="custom"
+                  markedDates={{
+                    [calendarDate]: {
+                      customStyles: {
+                        container: styles.selectedDay,
+                        text: styles.selectedDayText,
+                      },
+                    },
+                  }}
+                  theme={{
+                    textDayFontFamily: "PlusJakartaSans-Regular",
+                    textMonthFontFamily: "PlusJakartaSans-Regular",
+                    textDayHeaderFontFamily: "PlusJakartaSans-Regular",
+                    monthTextColor: "#4A4A4A",
+                    arrowColor: "#4A4A4A",
+                  }}
+                />
+              </View>
+
+              {!!activeTeamName && <Text style={styles.teamName}>{activeTeamName}</Text>}
+
+              <View style={styles.countdownWrapper}>
+                <Text style={styles.countdownLabel}>Remaining time until matching:</Text>
+                <Text style={styles.countdownLine}>
+                  <Text style={styles.countdownNumber}>{countdown.days}</Text>
+                  <Text style={styles.countdownUnit}> days </Text>:
+                  <Text style={styles.countdownNumber}> {countdown.hours}</Text>
+                  <Text style={styles.countdownUnit}> hours </Text>:
+                  <Text style={styles.countdownNumber}> {countdown.minutes}</Text>
+                  <Text style={styles.countdownUnit}> minutes </Text>:
+                  <Text style={styles.countdownNumber}> {countdown.seconds}</Text>
+                  <Text style={styles.countdownUnit}> seconds</Text>
+                </Text>
+              </View>
+            </>
+          )}
         </>
       )}
 
@@ -121,9 +105,7 @@ export default function BetweenScreen({ navigation }: any) {
           style={styles.primaryButton}
           onPress={() => navigation.navigate("MyPartner")}
         >
-          <Text style={styles.primaryButtonText}>
-            Show Wish Recipient 🎁
-          </Text>
+          <Text style={styles.primaryButtonText}>Show Wish Recipient 🎁</Text>
         </TouchableOpacity>
       )}
 
@@ -137,49 +119,14 @@ export default function BetweenScreen({ navigation }: any) {
   );
 }
 
-/* ================= STYLES ================= */
-
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#F8F6F5",
-    alignItems: "center",
-    paddingHorizontal: 24,
-  },
-
-  center: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  loading: {
-    marginTop: 12,
-    fontFamily: "PlusJakartaSans-Regular",
-    fontSize: 16,
-  },
-
-  back: {
-    alignSelf: "flex-start",
-    marginTop: 8,
-  },
-
-  backText: {
-    fontSize: 32,
-    color: "#4A4A4A",
-  },
-
-  syncWrapper: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 12,
-  },
-
-  syncText: {
-    marginLeft: 8,
-    fontSize: 12,
-    color: "#931515",
-  },
+  container: { flex: 1, backgroundColor: "#F8F6F5", alignItems: "center", paddingHorizontal: 24 },
+  center: { flex: 1, justifyContent: "center", alignItems: "center" },
+  loading: { marginTop: 12, fontFamily: "PlusJakartaSans-Regular", fontSize: 16 },
+  back: { alignSelf: "flex-start", marginTop: 8 },
+  backText: { fontSize: 32, color: "#4A4A4A" },
+  syncWrapper: { flexDirection: "row", alignItems: "center", marginTop: 12 },
+  syncText: { marginLeft: 8, fontSize: 12, color: "#931515" },
 
   calendarCard: {
     marginTop: 24,
@@ -195,15 +142,8 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
 
-  selectedDay: {
-    backgroundColor: "#931515",
-    borderRadius: 999,
-  },
-
-  selectedDayText: {
-    color: "#FFFFFF",
-    fontWeight: "700",
-  },
+  selectedDay: { backgroundColor: "#931515", borderRadius: 999 },
+  selectedDayText: { color: "#FFFFFF", fontWeight: "700" },
 
   teamName: {
     marginTop: 16,
@@ -213,23 +153,11 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 
-  countdownWrapper: {
-    marginTop: 32,
-    alignItems: "center",
-  },
-
-  countdownLabel: {
-    fontFamily: "PlusJakartaSans-Regular",
-    fontSize: 14,
-    marginBottom: 6,
-  },
-
-  countdownLine: {
-    fontFamily: "PlusJakartaSans-Regular",
-    fontSize: 14,
-    color: "#931515",
-    textAlign: "center",
-  },
+  countdownWrapper: { marginTop: 32, alignItems: "center" },
+  countdownLabel: { fontFamily: "PlusJakartaSans-Regular", fontSize: 14, marginBottom: 6 },
+  countdownLine: { fontFamily: "PlusJakartaSans-Regular", fontSize: 14, color: "#931515", textAlign: "center" },
+  countdownNumber: { fontWeight: "600" },
+  countdownUnit: {},
 
   primaryButton: {
     marginTop: 20,
@@ -240,17 +168,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  primaryButtonText: { fontFamily: "PlusJakartaSans-Regular", fontSize: 24, color: "#FFFFFF" },
 
-  primaryButtonText: {
-    fontFamily: "PlusJakartaSans-Regular",
-    fontSize: 24,
-    color: "#FFFFFF",
-  },
-
-  noMatchingText: {
-    marginTop: 40,
-    fontSize: 14,
-    color: "#888",
-    textAlign: "center",
-  },
+  noMatchingText: { marginTop: 40, fontSize: 14, color: "#888", textAlign: "center" },
 });
